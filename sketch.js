@@ -5,6 +5,10 @@ let winner = null;
 let soloTimer = 0;
 let deadPlayerId = null;
 
+// 최고 기록을 저장할 변수 (초기값 0)
+let highScore = 0;
+let isNewHighScore = false;
+
 function setup() {
   createCanvas(CANVAS_W, CANVAS_H);
   frameRate(FRAME_RATE);
@@ -25,6 +29,7 @@ function resetGame() {
   deadPlayerId = null;
   notifications = [];
   phase = PHASE_LOBBY;
+  isNewHighScore = false; // 게임 시작 시 경신 플래그 초기화
 }
 
 function draw() {
@@ -35,7 +40,7 @@ function draw() {
   if (phase === PHASE_END) {
     drawGrid(this); drawZombies(this);
     playerA.draw(this); playerB.draw(this);
-    drawResultScreen(this, countTiles(), winner);
+    drawResultScreen(this, countTiles(), winner, highScore, isNewHighScore);
     return;
   }
 
@@ -120,8 +125,8 @@ function _checkEndConditions(timeLeftSec) {
   }
 
   if (phase === PHASE_BETRAYAL) {
-    if (!playerA.alive && playerB.alive) { winner = 'B'; phase = PHASE_END; return; }
-    if (!playerB.alive && playerA.alive) { winner = 'A'; phase = PHASE_END; return; }
+    if (!playerA.alive && playerB.alive) { winner = 'B'; _endGame('elimination'); return; }
+    if (!playerB.alive && playerA.alive) { winner = 'A'; _endGame('elimination'); return; }
   }
 }
 
@@ -153,6 +158,7 @@ function _reviveDeadPlayer() {
 function _endGame(reason) {
   phase = PHASE_END;
   const counts = countTiles();
+  
   if (reason === 'timer') {
     if (playerA.alive && playerB.alive) {
       if (counts.A > counts.B) winner = 'A';
@@ -165,25 +171,43 @@ function _endGame(reason) {
     } else {
       winner = 'zombie';
     }
-  } else {
+  } else if (reason === 'both_dead') {
     winner = 'zombie';
+  }
+
+  // 최고 기록 정산 (플레이어 점수 중 높은 점수 기준)
+  const currentMaxScore = Math.max(counts.A, counts.B, counts.team);
+  if (currentMaxScore > highScore) {
+    highScore = currentMaxScore;
+    isNewHighScore = true;
   }
 }
 
 function keyPressed() {
+  // 로비에서 스페이스바를 누르면 시작
   if (phase === PHASE_LOBBY && keyCode === 32) { phase = PHASE_COOP; return; }
-  if (phase === PHASE_END && (key==='r'||key==='R')) { resetGame(); return; }
+  // 엔드 화면에서 R 또는 스페이스바를 누르면 재시작
+  if (phase === PHASE_END && (key === 'r' || key === 'R' || keyCode === 32)) { resetGame(); return; }
   if (betrayalAnnounceFade > 0) return; // 배신 알림 도중 키 입력 무시
-  if (phase===PHASE_COOP || phase===PHASE_SOLO || phase===PHASE_BETRAYAL) {
+  if (phase === PHASE_COOP || phase === PHASE_SOLO || phase === PHASE_BETRAYAL) {
     playerA.handleKeyPressed(keyCode);
     playerB.handleKeyPressed(keyCode);
   }
 }
 
 function mousePressed() {
-  const cx=CANVAS_W/2, cy=CANVAS_H/2;
-  if (phase===PHASE_END &&
-      mouseX>cx-80&&mouseX<cx+80&&mouseY>cy+58&&mouseY<cy+96) { resetGame(); }
-  if (phase===PHBY &&
-      mouseX>cx-100&&mouseX<cx+100&&mouseY>cy+80&&mouseY<cy+126) { phase=PHASE_COOP; }
+  const cx = CANVAS_W / 2;
+  const cy = CANVAS_H / 2;
+
+  // 로비 화면에서 시작하기 버튼 클릭 처리
+  if (phase === PHASE_LOBBY && mouseX > cx - 100 && mouseX < cx + 100 && mouseY > cy + 80 && mouseY < cy + 126) {
+    phase = PHASE_COOP;
+    return;
+  }
+
+  // 종료 화면에서 다시 시작 버튼 클릭 처리
+  if (phase === PHASE_END && mouseX > cx - 80 && mouseX < cx + 80 && mouseY > cy + 58 && mouseY < cy + 96) {
+    resetGame();
+    return;
+  }
 }
