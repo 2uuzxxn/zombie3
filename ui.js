@@ -19,7 +19,6 @@ function drawUI(p, phase, timeLeft, counts) {
   p.fill(40); p.rect(barX, barY, barW, barH, 5);
   
   // 배신타임 전 (협력 PHASE_COOP 또는 솔로 PHASE_SOLO 페이즈)
-  // 왼쪽: 좀비 영역(Z), 오른쪽: 플레이어 팀 영역(team)
   if (phase === PHASE_COOP || phase === PHASE_SOLO) {
     const wZombie = Math.max(0, (counts.Z / totalTiles) * barW);
     const wTeam = Math.max(0, (counts.team / totalTiles) * barW);
@@ -33,7 +32,6 @@ function drawUI(p, phase, timeLeft, counts) {
     p.text(`TEAM: ${counts.team}`, barX + barW, 14);
   } 
   // 배신타임 시작 후 (PHASE_BETRAYAL)
-  // 왼쪽: A 플레이어 영역, 오른쪽: B 플레이어 영역
   else {
     const wA = Math.max(0, (counts.A / totalTiles) * barW);
     const wB = Math.max(0, (counts.B / totalTiles) * barW);
@@ -60,7 +58,6 @@ function drawUI(p, phase, timeLeft, counts) {
   const secs = Math.floor(timeLeft%60);
   const timeStr = `${mins}:${secs.toString().padStart(2,'0')}`;
   
-  // 모든 상단 중앙 제한시간 타이틀 글자색을 빨간색 계열(#FF5252 또는 #F44336)로 수정
   p.textAlign(p.CENTER, p.CENTER);
   if (phase === PHASE_BETRAYAL) {
     p.fill(timeLeft < 10 ? (p.frameCount%10<5?'#FF1744':'#FF8A80') : '#FF5252');
@@ -123,25 +120,43 @@ function _drawNotifications(p) {
   }
 }
 
-function drawResultScreen(p, counts, winner) {
+// 결과 화면에 최고 기록 렌더링 로직 추가
+function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
   p.fill(0,0,0,200); p.noStroke(); p.rect(0,0,CANVAS_W,CANVAS_H);
   const cx=CANVAS_W/2, cy=CANVAS_H/2;
   p.fill(20,20,30,240); p.stroke(80); p.strokeWeight(1);
-  p.rect(cx-200, cy-130, 400, 270, 12);
+  p.rect(cx-200, cy-150, 400, 300, 12); // 높이를 살짝 늘려 공간 확보
   p.noStroke(); p.textAlign(p.CENTER, p.CENTER);
-  p.textSize(22); p.fill(255); p.text('게임 종료', cx, cy-100);
+  
+  p.textSize(22); p.fill(255); p.text('게임 종료', cx, cy-115);
   p.textSize(26);
-  if (winner==='A')      { p.fill(COLOR_A); p.text('플레이어 A 승리! 🏆', cx, cy-58); }
-  else if (winner==='B') { p.fill(COLOR_B); p.text('플레이어 B 승리! 🏆', cx, cy-58); }
-  else if (winner==='draw') { p.fill('#FFD600'); p.text('무승부!', cx, cy-58); }
-  else { p.fill('#AB47BC'); p.text('좀비의 승리... 😱', cx, cy-58); }
+  if (winner==='A')      { p.fill(COLOR_A); p.text('플레이어 A 승리! 🏆', cx, cy-75); }
+  else if (winner==='B') { p.fill(COLOR_B); p.text('플레이어 B 승리! 🏆', cx, cy-75); }
+  else if (winner==='draw') { p.fill('#FFD600'); p.text('무승부!', cx, cy-75); }
+  else { p.fill('#AB47BC'); p.text('좀비의 승리... 😱', cx, cy-75); }
+  
   p.textSize(14);
-  p.fill(COLOR_A); p.text(`A 영역: ${counts.A} 타일`, cx, cy-15);
-  p.fill(COLOR_B); p.text(`B 영역: ${counts.B} 타일`, cx, cy+10);
+  p.fill(COLOR_A); p.text(`A 영역: ${counts.A} 타일`, cx, cy-35);
+  p.fill(COLOR_B); p.text(`B 영역: ${counts.B} 타일`, cx, cy-10);
+  
+  // 최고기록 안내 및 경신 애니메이션 효과 추가
+  p.textSize(13);
+  if (isNewHighScore) {
+    // 최고 기록을 경신한 경우 반짝이는 텍스트 효과와 함께 문구 출력
+    let blink = Math.floor(p.frameCount / 10) % 2 === 0;
+    p.fill(blink ? '#FFD600' : '#FF8A00');
+    p.text(`🔥 최고 기록 경신! 🔥`, cx, cy + 20);
+    p.fill(255);
+    p.text(`현재 최고 기록: ${highScore} 타일`, cx, cy + 40);
+  } else {
+    p.fill(180);
+    p.text(`최고 기록: ${highScore} 타일`, cx, cy + 30);
+  }
+  
   p.fill(50,50,70); p.stroke(120); p.strokeWeight(1);
-  p.rect(cx-80, cy+58, 160, 38, 8);
-  p.noStroke(); p.fill(200); p.textSize(14);
-  p.text('다시 시작 (R)', cx, cy+78);
+  p.rect(cx-90, cy+75, 180, 38, 8);
+  p.noStroke(); p.fill(200); p.textSize(13);
+  p.text('다시 시작 (R / SPACE)', cx, cy+95);
 }
 
 let betrayalAnnounceFade = 0;
