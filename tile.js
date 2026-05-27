@@ -67,8 +67,10 @@ function checkTilePickup(player, zombiesArr, phase, p) {
 function _applyBoxEffect(box, player, phase, p) {
   switch (box.type) {
     case BOX_TYPE_MEDICINE: {
-      // 페이즈와 관계없이 먹은 플레이어 고유의 영역 색상(OWNER_A 또는 OWNER_B)이 지정되도록 수정
-      const owner = player.id === 'A' ? OWNER_A : OWNER_B;
+      // 협력 페이즈(PHASE_COOP)나 솔로 페이즈(PHASE_SOLO)에서는 배신타임 전이므로 무조건 TEAM 영역(초록색)으로 지정
+      const owner = (phase === PHASE_COOP || phase === PHASE_SOLO) 
+                    ? OWNER_TEAM 
+                    : (player.id === 'A' ? OWNER_A : OWNER_B);
       applyAreaBomb(player.r, player.c, owner);
       player.bombFlash = 20;
       showNotification(player.id, '💊 약을 먹었다! 보너스 땅이 주어졌다!!', '#43A047');
