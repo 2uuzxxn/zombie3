@@ -67,23 +67,21 @@ function checkTilePickup(player, zombiesArr, phase, p) {
 function _applyBoxEffect(box, player, phase, p) {
   switch (box.type) {
     case BOX_TYPE_MEDICINE: {
-      const owner = phase === PHASE_COOP ? OWNER_TEAM : (player.id === 'A' ? OWNER_A : OWNER_B);
+      // 페이즈와 관계없이 먹은 플레이어 고유의 영역 색상(OWNER_A 또는 OWNER_B)이 지정되도록 수정
+      const owner = player.id === 'A' ? OWNER_A : OWNER_B;
       applyAreaBomb(player.r, player.c, owner);
       player.bombFlash = 20;
-      // 요청하신 알림 문구 반영
       showNotification(player.id, '💊 약을 먹었다! 보너스 땅이 주어졌다!!', '#43A047');
       break;
     }
     case BOX_TYPE_BLOOD: {
       zombieBloodTimer = ZOMBIE_BLOOD_DURATION;
-      // 요청하신 알림 문구 반영
       showNotification(player.id, '🩸 피를 먹었다! 좀비가 빨라진다!!', '#E53935');
       break;
     }
     case BOX_TYPE_ENERGY: {
       player.boostTimer = BOOST_DURATION;
       player.steelTailTimer = STEEL_TAIL_DURATION;
-      // 요청하신 알림 문구 반영
       showNotification(player.id, '⚡ 에너지드링크를 마셨다! 강철꼬리가 생겼다!!', '#00E676');
       break;
     }
