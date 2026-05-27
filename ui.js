@@ -18,7 +18,8 @@ function drawUI(p, phase, timeLeft, counts) {
 
   p.fill(40); p.rect(barX, barY, barW, barH, 5);
   
-  // 배신타임 전 (협력 또는 솔로 페이즈) -> 왼쪽: 좀비 영역, 오른쪽: 플레이어(팀) 영역
+  // 배신타임 전 (협력 PHASE_COOP 또는 솔로 PHASE_SOLO 페이즈)
+  // 왼쪽: 좀비 영역(Z), 오른쪽: 플레이어 팀 영역(team)
   if (phase === PHASE_COOP || phase === PHASE_SOLO) {
     const wZombie = Math.max(0, (counts.Z / totalTiles) * barW);
     const wTeam = Math.max(0, (counts.team / totalTiles) * barW);
@@ -31,7 +32,8 @@ function drawUI(p, phase, timeLeft, counts) {
     p.fill(COLOR_TEAM); p.textAlign(p.RIGHT, p.CENTER);
     p.text(`TEAM: ${counts.team}`, barX + barW, 14);
   } 
-  // 배신타임 시작 후 -> 왼쪽: A 플레이어 영역, 오른쪽: B 플레이어 영역
+  // 배신타임 시작 후 (PHASE_BETRAYAL)
+  // 왼쪽: A 플레이어 영역, 오른쪽: B 플레이어 영역
   else {
     const wA = Math.max(0, (counts.A / totalTiles) * barW);
     const wB = Math.max(0, (counts.B / totalTiles) * barW);
@@ -57,9 +59,9 @@ function drawUI(p, phase, timeLeft, counts) {
   const mins = Math.floor(timeLeft/60);
   const secs = Math.floor(timeLeft%60);
   const timeStr = `${mins}:${secs.toString().padStart(2,'0')}`;
-  p.textAlign(p.CENTER, p.CENTER);
   
-  // 모든 페이즈에서 제한시간 글자색을 빨간색 계열로 통일
+  // 모든 상단 중앙 제한시간 타이틀 글자색을 빨간색 계열(#FF5252 또는 #F44336)로 수정
+  p.textAlign(p.CENTER, p.CENTER);
   if (phase === PHASE_BETRAYAL) {
     p.fill(timeLeft < 10 ? (p.frameCount%10<5?'#FF1744':'#FF8A80') : '#FF5252');
     p.textSize(15); p.text(`⚠ 배신 ${timeStr} ⚠`, CANVAS_W/2, 13);
