@@ -17,18 +17,32 @@ function drawUI(p, phase, timeLeft, counts) {
   const barX = 10, barY = 26, barW = CANVAS_W-20, barH = 8;
 
   p.fill(40); p.rect(barX, barY, barW, barH, 5);
+  
+  // 배신타임 전 (협력 또는 솔로 페이즈) -> 왼쪽: 좀비 영역, 오른쪽: 플레이어(팀) 영역
   if (phase === PHASE_COOP || phase === PHASE_SOLO) {
-    const w = Math.max(2, (counts.team / totalTiles) * barW);
-    p.fill(COLOR_TEAM); p.rect(barX, barY, w, barH, 5);
-  } else {
+    const wZombie = Math.max(0, (counts.Z / totalTiles) * barW);
+    const wTeam = Math.max(0, (counts.team / totalTiles) * barW);
+    
+    if (wZombie > 0) { p.fill(COLOR_ZOMBIE); p.rect(barX, barY, wZombie, barH, 5, 0, 0, 5); }
+    if (wTeam > 0) { p.fill(COLOR_TEAM); p.rect(barX + barW - wTeam, barY, wTeam, barH, 0, 5, 5, 0); }
+    
+    p.fill(COLOR_ZOMBIE); p.textSize(10); p.textAlign(p.LEFT, p.CENTER);
+    p.text(`Z: ${counts.Z}`, barX, 14);
+    p.fill(COLOR_TEAM); p.textAlign(p.RIGHT, p.CENTER);
+    p.text(`TEAM: ${counts.team}`, barX + barW, 14);
+  } 
+  // 배신타임 시작 후 -> 왼쪽: A 플레이어 영역, 오른쪽: B 플레이어 영역
+  else {
     const wA = Math.max(0, (counts.A / totalTiles) * barW);
     const wB = Math.max(0, (counts.B / totalTiles) * barW);
-    if (wA > 0) { p.fill(COLOR_A); p.rect(barX, barY, wA, barH, 5,0,0,5); }
-    if (wB > 0) { p.fill(COLOR_B); p.rect(barX+barW-wB, barY, wB, barH, 0,5,5,0); }
+    
+    if (wA > 0) { p.fill(COLOR_A); p.rect(barX, barY, wA, barH, 5, 0, 0, 5); }
+    if (wB > 0) { p.fill(COLOR_B); p.rect(barX + barW - wB, barY, wB, barH, 0, 5, 5, 0); }
+    
     p.fill(COLOR_A); p.textSize(10); p.textAlign(p.LEFT, p.CENTER);
     p.text(`A: ${counts.A}`, barX, 14);
     p.fill(COLOR_B); p.textAlign(p.RIGHT, p.CENTER);
-    p.text(`B: ${counts.B}`, barX+barW, 14);
+    p.text(`B: ${counts.B}`, barX + barW, 14);
   }
 
   const timeFraction = Math.max(0, Math.min(1, timeLeft / GAME_TOTAL_TIME));
@@ -44,14 +58,16 @@ function drawUI(p, phase, timeLeft, counts) {
   const secs = Math.floor(timeLeft%60);
   const timeStr = `${mins}:${secs.toString().padStart(2,'0')}`;
   p.textAlign(p.CENTER, p.CENTER);
+  
+  // 모든 페이즈에서 제한시간 글자색을 빨간색 계열로 통일
   if (phase === PHASE_BETRAYAL) {
     p.fill(timeLeft < 10 ? (p.frameCount%10<5?'#FF1744':'#FF8A80') : '#FF5252');
     p.textSize(15); p.text(`⚠ 배신 ${timeStr} ⚠`, CANVAS_W/2, 13);
   } else if (phase === PHASE_SOLO) {
-    p.fill('#FF9800'); p.textSize(14);
+    p.fill('#F44336'); p.textSize(14);
     p.text(`⏱ 제한 ${timeStr}`, CANVAS_W/2, 13);
   } else {
-    p.fill(220); p.textSize(13);
+    p.fill('#F44336'); p.textSize(13);
     p.text(timeStr, CANVAS_W/2, 13);
   }
 
@@ -92,7 +108,7 @@ function _drawPlayerStatus(p, player, x, y, label) {
 function _drawNotifications(p) {
   for (let i = notifications.length-1; i >= 0; i--) {
     const n = notifications[i];
-    if (betrayalAnnounceFade <= 0) n.timer--; // 알림창이 떠있을 때는 일반 알림 타이머 정지
+    if (betrayalAnnounceFade <= 0) n.timer--;
     if (n.timer <= 0) { notifications.splice(i,1); continue; }
     const alpha = Math.min(255, n.timer*3);
     const yPos = CANVAS_H - 30 - (notifications.length-1-i)*24;
@@ -127,7 +143,7 @@ function drawResultScreen(p, counts, winner) {
 }
 
 let betrayalAnnounceFade = 0;
-function showBetrayalAnnounce(p) { betrayalAnnounceFade = FRAME_RATE * 2; } // 2초(60fps 기준 120프레임) 유지
+function showBetrayalAnnounce(p) { betrayalAnnounceFade = FRAME_RATE * 2; }
 function drawBetrayalAnnounce(p) {
   if (betrayalAnnounceFade <= 0) return;
   betrayalAnnounceFade--;
