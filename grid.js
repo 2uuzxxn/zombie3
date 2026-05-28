@@ -103,8 +103,8 @@ function voronoiSplit(posA, posB) {
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       if (grid[r][c].owner === OWNER_TEAM) {
-        const dA = Math.abs(r-posA.r) + Math.abs(c-posA.c);
-        const dB = Math.abs(r-posB.r) + Math.abs(c-posB.c);
+        const dA = Math.abs(r - posA.r) + Math.abs(c - posA.c);
+        const dB = Math.abs(r - posB.r) + Math.abs(c - posB.c);
         grid[r][c].owner = dA <= dB ? OWNER_A : OWNER_B;
         grid[r][c].dirty = true;
       }
