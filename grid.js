@@ -1,4 +1,3 @@
-// grid.js
 let grid = [];
 
 function initGrid() {
@@ -52,7 +51,7 @@ function tileColor(owner) {
   }
 }
 
-// 4. 상대방이나 좀비 땅의 종류에 상관없이 가두면 무조건 내 영역으로 채우는 알고리즘 적용
+// 꼬리로 둘러싸인 내부 영역을 내 땅으로 채우는 BFS 알고리즘
 function floodFillEnclosed(tailSet, owner, p) {
   const visited = new Set();
   const queue = [];
@@ -61,7 +60,7 @@ function floodFillEnclosed(tailSet, owner, p) {
     for (let c = 0; c < COLS; c++) {
       if (r === 0 || r === ROWS-1 || c === 0 || c === COLS-1) {
         const key = `${r},${c}`;
-        if (!tailSet.has(key) && grid[r][c].owner !== owner && !visited.has(key)) {
+        if (!tailSet.has(key) && grid[r][c].owner === OWNER_NONE && !visited.has(key)) {
           visited.add(key);
           queue.push([r, c]);
         }
@@ -77,10 +76,9 @@ function floodFillEnclosed(tailSet, owner, p) {
       if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
       const key = `${nr},${nc}`;
       if (visited.has(key) || tailSet.has(key)) continue;
-      if (grid[nr][nc].owner !== owner) {
-        visited.add(key);
-        queue.push([nr, nc]);
-      }
+      if (grid[nr][nc].owner !== OWNER_NONE) continue;
+      visited.add(key);
+      queue.push([nr, nc]);
     }
   }
 
@@ -91,13 +89,14 @@ function floodFillEnclosed(tailSet, owner, p) {
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const key = `${r},${c}`;
-      if (grid[r][c].owner !== owner && !visited.has(key) && !tailSet.has(key)) {
+      if (grid[r][c].owner === OWNER_NONE && !visited.has(key) && !tailSet.has(key)) {
         setOwner(r, c, owner);
       }
     }
   }
 }
 
+// 배신 시 팀 영역 분할 알고리즘 (보로노이 다이어그램)
 function voronoiSplit(posA, posB) {
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
