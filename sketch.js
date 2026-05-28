@@ -206,7 +206,7 @@ function mousePressed() {
   }
 
   // 종료 화면에서 다시 시작 버튼 클릭 처리
-  if (phase === PHASE_END && mouseX > cx - 80 && mouseX < cx + 80 && mouseY > cy + 78 && mouseY < cy + 116) {
+  if (phase === PHASE_END && mouseX > cx - 80 && mouseX < cx + 80 && mouseY > cy + 58 && mouseY < cy + 96) {
     resetGame();
     return;
   }
@@ -216,48 +216,42 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
   p.fill(0,0,0,200); p.noStroke(); p.rect(0,0,CANVAS_W,CANVAS_H);
   const cx=CANVAS_W/2, cy=CANVAS_H/2;
   p.fill(20,20,30,240); p.stroke(80); p.strokeWeight(1);
-  p.rect(cx-200, cy-170, 400, 340, 12);
+  p.rect(cx-200, cy-150, 400, 300, 12);
   p.noStroke(); p.textAlign(p.CENTER, p.CENTER);
   
-  p.textSize(22); p.fill(255); p.text('게임 종료', cx, cy-135);
+  p.textSize(22); p.fill(255); p.text('게임 종료', cx, cy-115);
   p.textSize(26);
-  if (winner==='A')      { p.fill(COLOR_A); p.text('플레이어 A 승리! 🏆', cx, cy-95); }
-  else if (winner==='B') { p.fill(COLOR_B); p.text('플레이어 B 승리! 🏆', cx, cy-95); }
-  else if (winner==='draw') { p.fill('#FFD600'); p.text('무승부!', cx, cy-95); }
-  else { p.fill('#AB47BC'); p.text('좀비의 승리... 😱', cx, cy-95); }
+  if (winner==='A')      { p.fill(COLOR_A); p.text('플레이어 A 승리! 🏆', cx, cy-75); }
+  else if (winner==='B') { p.fill(COLOR_B); p.text('플레이어 B 승리! 🏆', cx, cy-75); }
+  else if (winner==='draw') { p.fill('#FFD600'); p.text('무승부!', cx, cy-75); }
+  else { p.fill('#AB47BC'); p.text('좀비의 승리... 😱', cx, cy-75); }
   
   p.textSize(14);
   // 배신타임 이전에 모두 죽은 경우(즉, 점수가 team에만 기록되어 있는 경우) 예외 처리
   if (!betrayalTriggered && winner === 'zombie') {
-    p.fill(COLOR_TEAM); p.text(`TEAM 영역: ${counts.team} 타일`, cx, cy-42);
+    p.fill(COLOR_TEAM); p.text(`TEAM 영역: ${counts.team} 타일`, cx, cy-22);
   } else {
     // 배신타임이 이미 진행되었거나 진행 중 끝난 경우 기존 방식 유지
-    p.fill(COLOR_A); p.text(`A 영역: ${counts.A} 타일`, cx, cy-55);
-    p.fill(COLOR_B); p.text(`B 영역: ${counts.B} 타일`, cx, cy-30);
+    p.fill(COLOR_A); p.text(`A 영역: ${counts.A} 타일`, cx, cy-35);
+    p.fill(COLOR_B); p.text(`B 영역: ${counts.B} 타일`, cx, cy-10);
   }
   
   p.textSize(13);
   if (isNewHighScore) {
     let blink = Math.floor(p.frameCount / 10) % 2 === 0;
     p.fill(blink ? '#FFD600' : '#FF8A00');
-    p.text(`🔥 최고 기록 경신! 🔥`, cx, cy);
+    p.text(`🔥 최고 기록 경신! 🔥`, cx, cy + 20);
     p.fill(255);
-    p.text(`현재 최고 기록: ${highScore} 타일`, cx, cy + 20);
+    p.text(`현재 최고 기록: ${highScore} 타일`, cx, cy + 40);
   } else {
     p.fill(180);
-    p.text(`최고 기록: ${highScore} 타일`, cx, cy + 10);
+    p.text(`최고 기록: ${highScore} 타일`, cx, cy + 30);
   }
   
-  // 엔딩 크레딧 추가
-  p.textSize(11);
-  p.fill(130);
-  p.text('—— Ending Credits ——', cx, cy + 45);
-  p.text('Graphics & Logic & Design : 이현서 이유진 전재민', cx, cy + 65);
-  
   p.fill(50,50,70); p.stroke(120); p.strokeWeight(1);
-  p.rect(cx-90, cy+95, 180, 38, 8);
+  p.rect(cx-90, cy+75, 180, 38, 8);
   p.noStroke(); p.fill(200); p.textSize(13);
-  p.text('다시 시작 (SPACE)', cx, cy+115); // UI 텍스트에서 'R /' 문구 삭제
+  p.text('다시 시작 (SPACE)', cx, cy+95); // UI 텍스트에서 'R /' 문구 삭제
 }
 
 let betrayalAnnounceFade = 0;
