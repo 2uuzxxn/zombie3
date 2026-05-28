@@ -67,7 +67,6 @@ function checkTilePickup(player, zombiesArr, phase, p) {
 function _applyBoxEffect(box, player, phase, p) {
   switch (box.type) {
     case BOX_TYPE_MEDICINE: {
-      // 협력 페이즈(PHASE_COOP)나 솔로 페이즈(PHASE_SOLO)에서는 배신타임 전이므로 무조건 TEAM 영역(초록색)으로 지정
       const owner = (phase === PHASE_COOP || phase === PHASE_SOLO) 
                     ? OWNER_TEAM 
                     : (player.id === 'A' ? OWNER_A : OWNER_B);
