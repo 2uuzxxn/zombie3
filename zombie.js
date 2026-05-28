@@ -115,9 +115,12 @@ class Zombie {
       return;
     }
 
-    const isOnOwned = getOwner(this.r, this.c) === OWNER_ZOMBIE;
-    if (isOnOwned) {
+    // 이동할 칸(nr,nc)이 좀비 영역인지 확인
+    const movingIntoOwned = getOwner(nr, nc) === OWNER_ZOMBIE;
+    if (movingIntoOwned) {
+      // 자기 땅으로 들어오는 순간: 꼬리가 있으면 항상 영역 채우기
       if (this.tail.length > 0) {
+        this.tail.push({ r: this.r, c: this.c });
         const tailSet = new Set(this.tail.map(t => `${t.r},${t.c}`));
         floodFillEnclosed(tailSet, OWNER_ZOMBIE, p);
         this.tail = [];
