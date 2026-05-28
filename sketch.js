@@ -12,6 +12,52 @@ let showHowto = false;
 let highScore = 0;
 let isNewHighScore = false;
 
+// 플레이어 픽셀맵 (8열 × 9행)
+// 0=투명, 1=몸통색, 2=눈흰자, 3=눈동자
+const _PMAP = [
+  [0,0,1,1,1,1,0,0],
+  [0,1,1,1,1,1,1,0],
+  [0,1,2,1,1,2,1,0],
+  [0,1,3,1,1,3,1,0],
+  [0,1,1,1,1,1,1,0],
+  [0,1,1,1,1,1,1,0],
+  [1,1,0,1,1,0,1,1],
+  [0,1,1,0,0,1,1,0],
+  [0,1,1,0,0,1,1,0],
+];
+
+// 좀비 픽셀맵 (8열 × 9행)
+// 0=투명, 1=몸통(초록), 2=눈흰자, 3=눈동자(진초록), 4=이빨(연초록)
+const _ZMAP = [
+  [0,0,1,1,1,1,0,0],
+  [0,1,1,1,1,1,1,0],
+  [0,1,2,1,1,2,1,0],
+  [0,1,3,1,1,3,1,0],
+  [0,1,1,1,1,1,1,0],
+  [0,1,4,1,1,4,1,0],
+  [1,1,0,1,1,0,1,1],
+  [0,1,1,0,0,1,1,0],
+  [0,1,1,0,0,1,1,0],
+];
+
+// 픽셀맵 드로잉 헬퍼
+function _drawPMap(p, map, ox, oy, ps, c1, c2, c3, c4, flipH) {
+  p.noStroke();
+  const COLS8 = map[0].length;
+  for (let r = 0; r < map.length; r++) {
+    for (let c = 0; c < COLS8; c++) {
+      const col = flipH ? COLS8 - 1 - c : c;
+      const v = map[r][col];
+      if (v === 0) continue;
+      if      (v === 1) p.fill(c1);
+      else if (v === 2) p.fill(c2);
+      else if (v === 3) p.fill(c3);
+      else if (v === 4) p.fill(c4);
+      p.rect(ox + c * ps, oy + r * ps, ps, ps);
+    }
+  }
+}
+
 function setup() {
   createCanvas(CANVAS_W, CANVAS_H);
   frameRate(FRAME_RATE);
@@ -139,8 +185,8 @@ function _endGame(reason) {
       else if (counts.B > counts.A) winner = 'B';
       else winner = 'draw';
     } else if (playerA.alive) { winner = 'A'; }
-    else if (playerB.alive) { winner = 'B'; }
-    else { winner = 'zombie'; }
+    else if (playerB.alive)   { winner = 'B'; }
+    else                      { winner = 'zombie'; }
   } else if (reason === 'both_dead') {
     winner = 'zombie';
   }
@@ -161,13 +207,13 @@ function keyPressed() {
 
 function mousePressed() {
   const cx = CANVAS_W / 2; // 450
-  const cy = CANVAS_H / 2; // 450
 
   if (phase === PHASE_LOBBY && showHowto) {
-    // 팝업 영역: cx-170 ~ cx+170, cy-125 ~ cy+125
-    const px = cx - 170, py = cy - 125, pw = 340, ph = 250;
-    // X버튼: 우상단
-    if (mouseX > px + pw - 34 && mouseX < px + pw - 4 && mouseY > py + 6 && mouseY < py + 34) {
+    const pw = 360, ph = 260;
+    const px = cx - pw / 2;
+    const py = CANVAS_H / 2 - ph / 2;
+    // X 버튼
+    if (mouseX > px + pw - 36 && mouseX < px + pw - 6 && mouseY > py + 6 && mouseY < py + 36) {
       showHowto = false; return;
     }
     // 팝업 바깥 클릭
@@ -178,18 +224,21 @@ function mousePressed() {
   }
 
   if (phase === PHASE_LOBBY) {
-    // 시작하기 버튼: cx-140~cx+140, cy+95~cy+150
-    if (mouseX > cx-140 && mouseX < cx+140 && mouseY > cy+95 && mouseY < cy+150) {
+    // 시작하기 버튼: x 300~600, y 370~432
+    if (mouseX > 300 && mouseX < 600 && mouseY > 370 && mouseY < 432) {
       phase = PHASE_COOP; return;
     }
-    // 게임 방법 버튼: cx-65~cx+65, cy+160~cy+185
-    if (mouseX > cx-65 && mouseX < cx+65 && mouseY > cy+160 && mouseY < cy+185) {
+    // 게임 방법 버튼: x 380~520, y 445~475
+    if (mouseX > 380 && mouseX < 520 && mouseY > 445 && mouseY < 475) {
       showHowto = true; return;
     }
   }
 
-  if (phase === PHASE_END && mouseX > cx-80 && mouseX < cx+80 && mouseY > cy+58 && mouseY < cy+96) {
-    resetGame(); return;
+  if (phase === PHASE_END) {
+    const cy = CANVAS_H / 2;
+    if (mouseX > cx - 80 && mouseX < cx + 80 && mouseY > cy + 58 && mouseY < cy + 96) {
+      resetGame(); return;
+    }
   }
 }
 
@@ -239,199 +288,138 @@ function drawBetrayalAnnounce(p) {
   p.textSize(13); p.text('이제 팀원도 적입니다', CANVAS_W / 2, CANVAS_H / 2 + 18);
 }
 
-// ── 픽셀 드로잉 ────────────────────────────────────────────
-// 플레이어 픽셀맵 (8열 × 9행)
-// 0=투명, 1=몸통색, 2=눈흰자, 3=눈동자
-const _PMAP = [
-  [0,0,1,1,1,1,0,0],
-  [0,1,1,1,1,1,1,0],
-  [0,1,2,1,1,2,1,0],
-  [0,1,3,1,1,3,1,0],
-  [0,1,1,1,1,1,1,0],
-  [0,1,1,1,1,1,1,0],
-  [1,1,0,1,1,0,1,1],
-  [0,1,1,0,0,1,1,0],
-  [0,1,1,0,0,1,1,0],
-];
-
-// 좀비 픽셀맵 (8열 × 9행)
-// 0=투명, 1=몸통색(초록), 2=눈흰자, 3=눈동자(어두운초록), 4=이빨(흰색)
-const _ZMAP = [
-  [0,0,1,1,1,1,0,0],
-  [0,1,1,1,1,1,1,0],
-  [0,1,2,1,1,2,1,0],
-  [0,1,3,1,1,3,1,0],
-  [0,1,1,1,1,1,1,0],
-  [0,1,4,1,1,4,1,0],
-  [1,1,0,1,1,0,1,1],
-  [0,1,1,0,0,1,1,0],
-  [0,1,1,0,0,1,1,0],
-];
-
-// map을 ox,oy 기준으로 그리기. ps=픽셀한칸크기, flipH=좌우반전
-function _drawPMap(p, map, ox, oy, ps, c1, c2, c3, c4, flipH) {
-  p.noStroke();
-  const COLS8 = map[0].length;
-  for (let r = 0; r < map.length; r++) {
-    for (let c = 0; c < COLS8; c++) {
-      const col = flipH ? COLS8 - 1 - c : c;
-      const v = map[r][col];
-      if (v === 0) continue;
-      if      (v === 1) p.fill(c1);
-      else if (v === 2) p.fill(c2);
-      else if (v === 3) p.fill(c3);
-      else if (v === 4) p.fill(c4);
-      p.rect(ox + c * ps, oy + r * ps, ps, ps);
-    }
-  }
-}
-
 function drawLobby(p) {
   p.background(10, 10, 15);
   p.noStroke();
   p.textAlign(p.CENTER, p.CENTER);
 
   const cx = CANVAS_W / 2; // 450
-  const cy = CANVAS_H / 2; // 450
 
-  // ── 제목 ──────────────────────────────────
-  p.textSize(58);
+  // ── 제목 ──────────────────────────────────────────────
+  p.textSize(60);
   p.fill('#4CAF50');
-  p.text('좀비 영역 전쟁', cx, cy - 210);
+  p.text('좀비 영역 전쟁', cx, 110);
 
   p.textSize(13);
-  p.fill(120);
-  p.text('2인 협력  →  배신 영역 점령 게임', cx, cy - 162);
+  p.fill(110);
+  p.text('2인 협력  →  배신 영역 점령 게임', cx, 165);
 
   p.textSize(11);
-  p.fill(75);
-  p.text('제작자 : 이현서  이유진  전재민', cx, cy - 142);
+  p.fill(70);
+  p.text('제작자 : 이현서  이유진  전재민', cx, 186);
 
-  // ── 픽셀 캐릭터 레이아웃 ─────────────────
-  // 픽셀 한 칸: 10px, 캐릭터 = 8×10=80px wide, 9×10=90px tall
-  const ps = 10;
-  const charW = 8 * ps; // 80
-  const charH = 9 * ps; // 90
+  // ── 픽셀 캐릭터 ───────────────────────────────────────
+  // ps=11 → 캐릭터 88×99px
+  const ps    = 11;
+  const charW = 8 * ps;  // 88
+  const charH = 9 * ps;  // 99
+  const charTopY = 220;
 
-  // 각 캐릭터 상단 y
-  const charTopY = cy - 118;
-
-  // A (왼쪽, 오른쪽 바라봄): x 중앙 = cx-200
-  const axMid = cx - 200;
-  const axLeft = axMid - charW / 2; // 410-40=370... 450-200=250, 250-40=210
-  _drawPMap(p, _PMAP, axLeft, charTopY, ps,
+  // Player A: 중심 x=180, 오른쪽 바라봄
+  const axMid = 180;
+  _drawPMap(p, _PMAP, axMid - charW / 2, charTopY, ps,
     '#C62828', '#eeeeee', '#111111', '#ffffff', false);
 
-  // B (오른쪽, 왼쪽 바라봄): x 중앙 = cx+200
-  const bxMid = cx + 200;
-  const bxLeft = bxMid - charW / 2;
-  _drawPMap(p, _PMAP, bxLeft, charTopY, ps,
+  // Player B: 중심 x=720, 왼쪽 바라봄
+  const bxMid = 720;
+  _drawPMap(p, _PMAP, bxMid - charW / 2, charTopY, ps,
     '#1565C0', '#eeeeee', '#111111', '#ffffff', true);
 
-  // Z 좀비 (가운데): x 중앙 = cx
-  const zps = 9; // 좀비는 약간 작게
-  const zW = 8 * zps;
-  const zH = 9 * zps;
-  const zLeft = cx - zW / 2;
-  const zTopY = cy - 108;
-  _drawPMap(p, _ZMAP, zLeft, zTopY, zps,
+  // Zombie: 중심 x=450, ps=10 → 80×90px
+  const zps = 10;
+  const zW  = 8 * zps; // 80
+  _drawPMap(p, _ZMAP, cx - zW / 2, charTopY + 5, zps,
     '#2E7D32', '#ccffcc', '#1B5E20', '#e8ffe8', false);
 
-  // ── 라벨 + 키 정보 ──────────────────────
-  const labelY = charTopY - 18;
-  const keyY   = charTopY + charH + 16;
+  // ── 라벨 + 키 ─────────────────────────────────────────
+  const labelY = charTopY - 20;
+  const keyY   = charTopY + charH + 18;
 
-  // PLAYER A 라벨
-  p.textSize(12);
+  p.textSize(13);
   p.fill(COLOR_A);
   p.text('PLAYER  A', axMid, labelY);
 
-  // PLAYER A 키
-  p.textSize(11);
+  p.textSize(12);
   p.fill(COLOR_A);
   p.text('W  /  A  /  S  /  D', axMid, keyY);
 
-  // PLAYER B 라벨
-  p.textSize(12);
+  p.textSize(13);
   p.fill(COLOR_B);
   p.text('PLAYER  B', bxMid, labelY);
 
-  // PLAYER B 키
-  p.textSize(11);
+  p.textSize(12);
   p.fill(COLOR_B);
   p.text('↑  /  ↓  /  ←  /  →', bxMid, keyY);
 
-  // VS 텍스트 (좀비 위, 아래)
-  p.textSize(13);
-  p.fill(50);
-  p.text('VS', cx - 130, cy - 75); // A와 Z 사이
-  p.text('VS', cx + 130, cy - 75); // Z와 B 사이
+  p.textSize(12);
+  p.fill('#2E7D32');
+  p.text('Z O M B I E', cx, labelY);
 
-  // ── 구분선 ──────────────────────────────
-  p.stroke(28);
+  // ── VS + 구분선 ───────────────────────────────────────
+  p.textSize(16);
+  p.fill(45);
+  p.text('VS', 315, charTopY + charH / 2);
+  p.text('VS', 585, charTopY + charH / 2);
+
+  p.stroke(30);
   p.strokeWeight(1);
-  p.line(cx - 70, charTopY - 8, cx - 70, charTopY + charH + 8);
-  p.line(cx + 70, charTopY - 8, cx + 70, charTopY + charH + 8);
+  p.line(360, charTopY, 360, charTopY + charH);
+  p.line(540, charTopY, 540, charTopY + charH);
   p.noStroke();
 
-  // ── 시작하기 버튼 ────────────────────────
-  // 위치: cy+95 ~ cy+150 (높이 55)
-  const btnX = cx - 140;
-  const btnY = cy + 95;
-  const btnW = 280;
-  const btnH = 55;
+  // ── 시작하기 버튼 (y: 370~432, 높이 62) ──────────────
+  const btnW = 300;
+  const btnH = 62;
+  const btnX = cx - btnW / 2;
+  const btnY = 370;
   const blink = Math.floor(p.frameCount / 18) % 2 === 0;
   p.fill(blink ? '#43A047' : '#2E7D32');
-  p.rect(btnX, btnY, btnW, btnH, 12);
+  p.rect(btnX, btnY, btnW, btnH, 14);
   p.fill(255);
-  p.textSize(20);
+  p.textSize(22);
   p.text('▶  시작하기  (SPACE)', cx, btnY + btnH / 2);
 
-  // ── 게임 방법 버튼 ──────────────────────
-  // 위치: cy+160 ~ cy+185
-  const htX = cx - 65;
-  const htY = cy + 160;
-  const htW = 130;
-  const htH = 28;
+  // ── 게임 방법 버튼 (y: 445~475) ──────────────────────
+  const htW = 140;
+  const htH = 30;
+  const htX = cx - htW / 2;
+  const htY = 445;
   p.fill(22, 22, 30);
   p.stroke(55);
   p.strokeWeight(1);
   p.rect(htX, htY, htW, htH, 7);
   p.noStroke();
-  p.fill(130);
+  p.fill(120);
   p.textSize(12);
   p.text('게임  방법', cx, htY + htH / 2);
 
-  // ── 게임 방법 팝업 ──────────────────────
+  // ── 게임 방법 팝업 ────────────────────────────────────
   if (showHowto) {
-    // 어두운 오버레이
-    p.fill(0, 0, 0, 185);
+    p.fill(0, 0, 0, 190);
+    p.noStroke();
     p.rect(0, 0, CANVAS_W, CANVAS_H);
 
-    // 팝업 박스: cx-170~cx+170, cy-125~cy+125 (340×250)
-    const pw = 340, ph = 250;
+    const pw = 360, ph = 260;
     const px = cx - pw / 2;
-    const py = cy - 125;
+    const py = CANVAS_H / 2 - ph / 2;
+
     p.fill(16, 16, 24);
     p.stroke(70);
     p.strokeWeight(1);
     p.rect(px, py, pw, ph, 12);
     p.noStroke();
 
-    // 팝업 제목
     p.fill('#4CAF50');
     p.textSize(14);
     p.textAlign(p.LEFT, p.TOP);
-    p.text('[ 게임 방법 ]', px + 20, py + 18);
+    p.text('[ 게임 방법 ]', px + 22, py + 20);
 
-    // X 닫기
-    p.fill(90);
+    p.fill(80);
     p.textSize(15);
     p.textAlign(p.RIGHT, p.TOP);
-    p.text('✕', px + pw - 14, py + 14);
+    p.text('✕', px + pw - 16, py + 16);
 
-    // 내용
-    p.fill(150);
+    p.fill(145);
     p.textSize(11);
     p.textAlign(p.LEFT, p.TOP);
     const lines = [
@@ -446,7 +434,7 @@ function drawLobby(p) {
       '⚡  에너지드링크 :  속도 2배 + 강철꼬리',
     ];
     for (let i = 0; i < lines.length; i++) {
-      p.text(lines[i], px + 20, py + 50 + i * 19);
+      p.text(lines[i], px + 22, py + 52 + i * 20);
     }
   }
 }
