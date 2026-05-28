@@ -1,13 +1,12 @@
 // sketch.js
 
-// [수정] 전역 변수 정의를 최상단으로 끌어올려 ReferenceError를 방지합니다.
 let phase = PHASE_LOBBY;
 let gameTimer = 0;
 let betrayalTriggered = false;
 let winner = null;
 let soloTimer = 0;
 let deadPlayerId = null;
-let betrayalAnnounceFade = 0; // 이 위치로 이동 및 초기화!
+let betrayalAnnounceFade = 0;
 
 // 최고 기록을 저장할 변수 (초기값 0)
 let highScore = 0;
@@ -33,7 +32,7 @@ function resetGame() {
   deadPlayerId = null;
   notifications = [];
   phase = PHASE_LOBBY;
-  isNewHighScore = false; // 게임 시작 시 경신 플래그 초기화
+  isNewHighScore = false; 
 }
 
 function draw() {
@@ -48,7 +47,6 @@ function draw() {
     return;
   }
 
-  // 배신타임 알림창이 떠 있는 동안 시간정지 및 움직임 정지 처리
   if (betrayalAnnounceFade > 0) {
     drawGrid(this);
     drawTiles(this);
@@ -90,25 +88,28 @@ function _triggerBetrayal() {
   betrayalTriggered = true;
   phase = PHASE_BETRAYAL;
   
-  // 배신 페이즈 시작 시점에 죽어있는 플레이어가 있다면 강제 부활 처리
-  const midR = Math.floor(ROWS/2);
-  const midC = Math.floor(COLS/2);
-  
-  if (!playerA.alive) {
-    playerA.revive(midR - 3, midC, OWNER_A);
-  }
-  if (!playerB.alive) {
-    playerB.revive(midR + 3, midC, OWNER_B);
-  }
-
-  const pA = {r:playerA.r, c:playerA.c};
-  const pB = {r:playerB.r, c:playerB.c};
-  
-  voronoiSplit(pA, pB);
+  // 1. 플레이어 상태 및 인스턴스 소유권 선전환
   playerA.setPhase(PHASE_BETRAYAL);
   playerB.setPhase(PHASE_BETRAYAL);
+
+  // 2. 사망한 플레이어가 있다면 강제 부활 처리 및 좌표 재설정
+  const midR = Math.floor(ROWS/2);
+  const midC = Math.floor(COLS/2);
+  if (!playerA.alive) playerA.revive(midR - 3, midC, OWNER_A);
+  if (!playerB.alive) playerB.revive(midR + 3, midC, OWNER_B);
+
+  // 3. 현재 두 플레이어의 실제 좌표를 기반으로 보로노이 분할 실행
+  const pA = { r: playerA.r, c: playerA.c };
+  const pB = { r: playerB.r, c: playerB.c };
+  voronoiSplit(pA, pB);
+
+  // 4. 기존 필드에 남아있던 플레이어들의 꼬리 영역도 각자의 영역으로 확정 변환
   for (const t of playerA.tail) setOwner(t.r, t.c, OWNER_A);
   for (const t of playerB.tail) setOwner(t.r, t.c, OWNER_B);
+  
+  // 5. 현재 서 있는 발밑 타일 소유권도 즉시 업데이트하여 오류 방지
+  setOwner(playerA.r, playerA.c, OWNER_A);
+  setOwner(playerB.r, playerB.c, OWNER_B);
   
   showBetrayalAnnounce(this);
 }
@@ -143,6 +144,7 @@ function _reviveDeadPlayer() {
   const deadSpawnR = midR + (deadPlayerId === 'A' ? -3 : 3);
   const deadSpawnC = midC;
 
+  // 부활 시점 좌표 기준으로 보로노이 분할 실행
   voronoiSplit({r:deadSpawnR, c:deadSpawnC}, {r:survivor.r, c:survivor.c});
 
   const deadOwner = deadPlayerId === 'A' ? OWNER_A : OWNER_B;
@@ -153,6 +155,9 @@ function _reviveDeadPlayer() {
   phase = PHASE_BETRAYAL;
   playerA.setPhase(PHASE_BETRAYAL);
   playerB.setPhase(PHASE_BETRAYAL);
+  
+  setOwner(playerA.r, playerA.c, OWNER_A);
+  setOwner(playerB.r, playerB.c, OWNER_B);
   deadPlayerId = null;
 
   showBetrayalAnnounce(this);
@@ -179,7 +184,6 @@ function _endGame(reason) {
     winner = 'zombie';
   }
 
-  // 최고 기록 정산 (플레이어 점수 중 높은 점수 기준)
   const currentMaxScore = Math.max(counts.A, counts.B, counts.team);
   if (currentMaxScore > highScore) {
     highScore = currentMaxScore;
@@ -188,11 +192,9 @@ function _endGame(reason) {
 }
 
 function keyPressed() {
-  // 로비에서 스페이스바를 누르면 시작
   if (phase === PHASE_LOBBY && keyCode === 32) { phase = PHASE_COOP; return; }
-  // 엔드 화면에서 스페이스바를 누르면 재시작 (key === 'r' || key === 'R' 체크 조건 제거)
   if (phase === PHASE_END && keyCode === 32) { resetGame(); return; }
-  if (betrayalAnnounceFade > 0) return; // 배신 알림 도중 키 입력 무시
+  if (betrayalAnnounceFade > 0) return; 
   if (phase === PHASE_COOP || phase === PHASE_SOLO || phase === PHASE_BETRAYAL) {
     playerA.handleKeyPressed(keyCode);
     playerB.handleKeyPressed(keyCode);
@@ -203,13 +205,11 @@ function mousePressed() {
   const cx = CANVAS_W / 2;
   const cy = CANVAS_H / 2;
 
-  // 로비 화면에서 시작하기 버튼 클릭 처리
   if (phase === PHASE_LOBBY && mouseX > cx - 100 && mouseX < cx + 100 && mouseY > cy + 105 && mouseY < cy + 151) {
     phase = PHASE_COOP;
     return;
   }
 
-  // 종료 화면에서 다시 시작 버튼 클릭 처리
   if (phase === PHASE_END && mouseX > cx - 80 && mouseX < cx + 80 && mouseY > cy + 58 && mouseY < cy + 96) {
     resetGame();
     return;
@@ -231,11 +231,9 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
   else { p.fill('#AB47BC'); p.text('좀비의 승리... 😱', cx, cy-75); }
   
   p.textSize(14);
-  // 배신타임 이전에 모두 죽은 경우(즉, 점수가 team에만 기록되어 있는 경우) 예외 처리
   if (!betrayalTriggered && winner === 'zombie') {
     p.fill(COLOR_TEAM); p.text(`TEAM 영역: ${counts.team} 타일`, cx, cy-22);
   } else {
-    // 배신타임이 이미 진행되었거나 진행 중 끝난 경우 기존 방식 유지
     p.fill(COLOR_A); p.text(`A 영역: ${counts.A} 타일`, cx, cy-35);
     p.fill(COLOR_B); p.text(`B 영역: ${counts.B} 타일`, cx, cy-10);
   }
@@ -255,10 +253,9 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
   p.fill(50,50,70); p.stroke(120); p.strokeWeight(1);
   p.rect(cx-90, cy+75, 180, 38, 8);
   p.noStroke(); p.fill(200); p.textSize(13);
-  p.text('다시 시작 (SPACE)', cx, cy+95); // UI 텍스트에서 'R /' 문구 삭제
+  p.text('다시 시작 (SPACE)', cx, cy+95); 
 }
 
-// [수정] 아래 있던 변수 선언('let betrayalAnnounceFade = 0;')을 최상단으로 이동시켰습니다.
 function showBetrayalAnnounce(p) { betrayalAnnounceFade = FRAME_RATE * 2; }
 function drawBetrayalAnnounce(p) {
   if (betrayalAnnounceFade <= 0) return;
@@ -277,7 +274,6 @@ function drawLobby(p) {
   const cy = CANVAS_H / 2;
   p.textAlign(p.CENTER, p.CENTER);
   
-  // 타이틀 글자 키움 (36 -> 46)
   p.textSize(46); 
   p.fill('#4CAF50'); 
   p.text('좀비 영역 전쟁', cx, cy - 160);
@@ -286,12 +282,10 @@ function drawLobby(p) {
   p.fill(180); 
   p.text('2인 협력 → 배신 영역 점령 게임', cx, cy - 110);
   
-  // 제작자명 추가
   p.textSize(12);
   p.fill(130);
   p.text('제작자명 : 이현서 이유진 전재민', cx, cy - 85);
   
-  // 플레이어 글씨 키움 (12 -> 16) 및 간격 조정
   p.textSize(16);
   p.fill(COLOR_A); 
   p.text('플레이어 A: W A S D', cx - 130, cy - 55);
