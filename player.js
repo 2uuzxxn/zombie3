@@ -39,6 +39,7 @@ class Player {
   }
 
   get speed() {
+    // 1. 플레이어 속도 기존 대비 1.1배 상향 반영
     return (this.boostTimer > 0 ? PLAYER_SPEED * BOOST_MULTIPLIER : PLAYER_SPEED) * 1.1;
   }
 
@@ -71,8 +72,9 @@ class Player {
       return;
     }
 
+    // 2. 다른 플레이어나 좀비의 영역을 뺏어올 때도 실시간으로 꼬리가 생기며,
+    // 오직 '자신의 땅'을 밟았을 때만 내부가 빈틈없이 채워지도록 수정
     const currentTileOwner = getOwner(nr, nc);
-    // [수정] 상대방 땅 위를 지나갈 때도 꼬리가 생기도록 하며, 자신의 땅에 도착했을 때만 영역이 채워지도록 수정
     const onOwned = currentTileOwner === this.owner;
     
     if (onOwned) {
