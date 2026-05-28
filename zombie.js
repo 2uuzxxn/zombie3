@@ -19,6 +19,7 @@ class Zombie {
   }
 
   get speed() {
+    // 3. 좀비 속도 기존 대비 1.1배 상향 반영
     return (zombieBloodTimer > 0 ? ZOMBIE_SPEED_BOOSTED : ZOMBIE_SPEED_NORMAL) * 1.1;
   }
 
