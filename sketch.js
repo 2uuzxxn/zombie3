@@ -200,13 +200,13 @@ function mousePressed() {
   const cy = CANVAS_H / 2;
 
   // 로비 화면에서 시작하기 버튼 클릭 처리
-  if (phase === PHASE_LOBBY && mouseX > cx - 100 && mouseX < cx + 100 && mouseY > cy + 80 && mouseY < cy + 126) {
+  if (phase === PHASE_LOBBY && mouseX > cx - 100 && mouseX < cx + 100 && mouseY > cy + 105 && mouseY < cy + 151) {
     phase = PHASE_COOP;
     return;
   }
 
   // 종료 화면에서 다시 시작 버튼 클릭 처리
-  if (phase === PHASE_END && mouseX > cx - 80 && mouseX < cx + 80 && mouseY > cy + 58 && mouseY < cy + 96) {
+  if (phase === PHASE_END && mouseX > cx - 80 && mouseX < cx + 80 && mouseY > cy + 78 && mouseY < cy + 116) {
     resetGame();
     return;
   }
@@ -216,42 +216,48 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
   p.fill(0,0,0,200); p.noStroke(); p.rect(0,0,CANVAS_W,CANVAS_H);
   const cx=CANVAS_W/2, cy=CANVAS_H/2;
   p.fill(20,20,30,240); p.stroke(80); p.strokeWeight(1);
-  p.rect(cx-200, cy-150, 400, 300, 12);
+  p.rect(cx-200, cy-170, 400, 340, 12);
   p.noStroke(); p.textAlign(p.CENTER, p.CENTER);
   
-  p.textSize(22); p.fill(255); p.text('게임 종료', cx, cy-115);
+  p.textSize(22); p.fill(255); p.text('게임 종료', cx, cy-135);
   p.textSize(26);
-  if (winner==='A')      { p.fill(COLOR_A); p.text('플레이어 A 승리! 🏆', cx, cy-75); }
-  else if (winner==='B') { p.fill(COLOR_B); p.text('플레이어 B 승리! 🏆', cx, cy-75); }
-  else if (winner==='draw') { p.fill('#FFD600'); p.text('무승부!', cx, cy-75); }
-  else { p.fill('#AB47BC'); p.text('좀비의 승리... 😱', cx, cy-75); }
+  if (winner==='A')      { p.fill(COLOR_A); p.text('플레이어 A 승리! 🏆', cx, cy-95); }
+  else if (winner==='B') { p.fill(COLOR_B); p.text('플레이어 B 승리! 🏆', cx, cy-95); }
+  else if (winner==='draw') { p.fill('#FFD600'); p.text('무승부!', cx, cy-95); }
+  else { p.fill('#AB47BC'); p.text('좀비의 승리... 😱', cx, cy-95); }
   
   p.textSize(14);
   // 배신타임 이전에 모두 죽은 경우(즉, 점수가 team에만 기록되어 있는 경우) 예외 처리
   if (!betrayalTriggered && winner === 'zombie') {
-    p.fill(COLOR_TEAM); p.text(`TEAM 영역: ${counts.team} 타일`, cx, cy-22);
+    p.fill(COLOR_TEAM); p.text(`TEAM 영역: ${counts.team} 타일`, cx, cy-42);
   } else {
     // 배신타임이 이미 진행되었거나 진행 중 끝난 경우 기존 방식 유지
-    p.fill(COLOR_A); p.text(`A 영역: ${counts.A} 타일`, cx, cy-35);
-    p.fill(COLOR_B); p.text(`B 영역: ${counts.B} 타일`, cx, cy-10);
+    p.fill(COLOR_A); p.text(`A 영역: ${counts.A} 타일`, cx, cy-55);
+    p.fill(COLOR_B); p.text(`B 영역: ${counts.B} 타일`, cx, cy-30);
   }
   
   p.textSize(13);
   if (isNewHighScore) {
     let blink = Math.floor(p.frameCount / 10) % 2 === 0;
     p.fill(blink ? '#FFD600' : '#FF8A00');
-    p.text(`🔥 최고 기록 경신! 🔥`, cx, cy + 20);
+    p.text(`🔥 최고 기록 경신! 🔥`, cx, cy);
     p.fill(255);
-    p.text(`현재 최고 기록: ${highScore} 타일`, cx, cy + 40);
+    p.text(`현재 최고 기록: ${highScore} 타일`, cx, cy + 20);
   } else {
     p.fill(180);
-    p.text(`최고 기록: ${highScore} 타일`, cx, cy + 30);
+    p.text(`최고 기록: ${highScore} 타일`, cx, cy + 10);
   }
   
+  // 엔딩 크레딧 추가
+  p.textSize(11);
+  p.fill(130);
+  p.text('—— Ending Credits ——', cx, cy + 45);
+  p.text('Graphics & Logic & Design : 이현서 이유진 전재민', cx, cy + 65);
+  
   p.fill(50,50,70); p.stroke(120); p.strokeWeight(1);
-  p.rect(cx-90, cy+75, 180, 38, 8);
+  p.rect(cx-90, cy+95, 180, 38, 8);
   p.noStroke(); p.fill(200); p.textSize(13);
-  p.text('다시 시작 (SPACE)', cx, cy+95); // UI 텍스트에서 'R /' 문구 삭제
+  p.text('다시 시작 (SPACE)', cx, cy+115); // UI 텍스트에서 'R /' 문구 삭제
 }
 
 let betrayalAnnounceFade = 0;
@@ -282,29 +288,34 @@ function drawLobby(p) {
   p.fill(180); 
   p.text('2인 협력 → 배신 영역 점령 게임', cx, cy - 110);
   
+  // 제작자명 추가
+  p.textSize(12);
+  p.fill(130);
+  p.text('제작자명 : 이현서 이유진 전재민', cx, cy - 85);
+  
   // 플레이어 글씨 키움 (12 -> 16) 및 간격 조정
   p.textSize(16);
   p.fill(COLOR_A); 
-  p.text('플레이어 A: W A S D', cx - 130, cy - 65);
+  p.text('플레이어 A: W A S D', cx - 130, cy - 55);
   p.fill(COLOR_B); 
-  p.text('플레이어 B: ↑ ↓ ← →', cx + 130, cy - 65);
+  p.text('플레이어 B: ↑ ↓ ← →', cx + 130, cy - 55);
   
   p.textSize(11); 
   p.fill(160);
-  p.text('협력 페이즈 30초 → 배신 페이즈 30초', cx, cy - 25);
-  p.text('상대 꼬리를 끊어야 죽음 / 머리끼리 부딪히면 밀려남', cx, cy - 5);
-  p.text('맵 밖으로 나갈 수 없음', cx, cy + 15);
+  p.text('협력 페이즈 30초 → 배신 페이즈 30초', cx, cy - 15);
+  p.text('상대 꼬리를 끊어야 죽음 / 머리끼리 부딪히면 밀려남', cx, cy + 5);
+  p.text('맵 밖으로 나갈 수 없음', cx, cy + 25);
   
   p.fill(255, 165, 0);
-  p.text('💊 약: 보너스 땅   🩸 피: 좀비 가속   ⚡ 에너지드링크: 속도2배+강철꼬리', cx, cy + 45);
+  p.text('💊 약: 보너스 땅   🩸 피: 좀비 가속   ⚡ 에너지드링크: 속도2배+강철꼬리', cx, cy + 55);
   p.fill(180); 
-  p.text('좀비 꼬리를 밟으면 좀비가 죽습니다!', cx, cy + 65);
+  p.text('좀비 꼬리를 밟으면 좀비가 죽습니다!', cx, cy + 75);
   
   const blink = Math.floor(p.frameCount / 20) % 2 === 0;
   p.fill(blink ? '#4CAF50' : '#2E7D32'); 
   p.noStroke();
-  p.rect(cx - 100, cy + 95, 200, 46, 10);
+  p.rect(cx - 100, cy + 105, 200, 46, 10);
   p.fill(255); 
   p.textSize(15); 
-  p.text('시작하기 (SPACE)', cx, cy + 119);
+  p.text('시작하기 (SPACE)', cx, cy + 129);
 }
