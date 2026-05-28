@@ -72,18 +72,21 @@ class Player {
       return;
     }
 
-    // 2. 다른 플레이어나 좀비의 영역을 뺏어올 때도 실시간으로 꼬리가 생기며,
-    // 오직 '자신의 땅'을 밟았을 때만 내부가 빈틈없이 채워지도록 수정
-    const currentTileOwner = getOwner(nr, nc);
-    const onOwned = currentTileOwner === this.owner;
-    
-    if (onOwned) {
+    // 이동할 칸(nr,nc)이 자신의 영역인지 확인
+    const nextTileOwner = getOwner(nr, nc);
+    const movingIntoOwned = nextTileOwner === this.owner;
+
+    if (movingIntoOwned) {
+      // 자기 땅으로 들어오는 순간: 꼬리가 있으면 항상 영역 채우기
       if (this.tail.length > 0) {
+        // 현재 위치도 꼬리에 포함시켜 경계를 완성한 뒤 fill
+        this.tail.push({ r: this.r, c: this.c });
         const tailSet = new Set(this.tail.map(t => `${t.r},${t.c}`));
         floodFillEnclosed(tailSet, this.owner, p);
         this.tail = [];
       }
     } else {
+      // 자기 땅 밖: 현재 위치를 꼬리에 추가
       this.tail.push({ r: this.r, c: this.c });
     }
 
