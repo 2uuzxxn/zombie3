@@ -58,6 +58,20 @@ function _drawPMap(p, map, ox, oy, ps, c1, c2, c3, c4, flipH) {
   }
 }
 
+// 키캡 하나 그리기
+function _drawKey(p, label, x, y, w, h, col) {
+  // 배경 박스
+  p.fill(18, 18, 26);
+  p.stroke(col);
+  p.strokeWeight(1.5);
+  p.rect(x, y, w, h, 4);
+  p.noStroke();
+  p.fill(col);
+  p.textSize(11);
+  p.textAlign(p.CENTER, p.CENTER);
+  p.text(label, x + w / 2, y + h / 2);
+}
+
 function setup() {
   createCanvas(CANVAS_W, CANVAS_H);
   frameRate(FRAME_RATE);
@@ -212,11 +226,9 @@ function mousePressed() {
     const pw = 360, ph = 260;
     const px = cx - pw / 2;
     const py = CANVAS_H / 2 - ph / 2;
-    // X 버튼
     if (mouseX > px + pw - 36 && mouseX < px + pw - 6 && mouseY > py + 6 && mouseY < py + 36) {
       showHowto = false; return;
     }
-    // 팝업 바깥 클릭
     if (mouseX < px || mouseX > px + pw || mouseY < py || mouseY > py + ph) {
       showHowto = false; return;
     }
@@ -224,12 +236,12 @@ function mousePressed() {
   }
 
   if (phase === PHASE_LOBBY) {
-    // 시작하기 버튼: x 300~600, y 370~432
-    if (mouseX > 300 && mouseX < 600 && mouseY > 370 && mouseY < 432) {
+    // 시작하기 버튼: cx-210~cx+210, y 448~535
+    if (mouseX > 240 && mouseX < 660 && mouseY > 448 && mouseY < 535) {
       phase = PHASE_COOP; return;
     }
-    // 게임 방법 버튼: x 380~520, y 445~475
-    if (mouseX > 380 && mouseX < 520 && mouseY > 445 && mouseY < 475) {
+    // 게임 방법 버튼: cx-91~cx+91, y 551~590
+    if (mouseX > 359 && mouseX < 541 && mouseY > 551 && mouseY < 590) {
       showHowto = true; return;
     }
   }
@@ -295,102 +307,115 @@ function drawLobby(p) {
 
   const cx = CANVAS_W / 2; // 450
 
-  // ── 제목 ──────────────────────────────────────────────
-  p.textSize(60);
+  // ── 제목 (두껍게: 1px 오프셋으로 2번 그려 bold 효과) ──
+  p.textSize(72);
+  p.fill('#3d8b40'); // 그림자 레이어 (살짝 어둡게)
+  p.text('좀비 슬라이드 듀오', cx + 1, 86);
   p.fill('#4CAF50');
-  p.text('좀비 영역 전쟁', cx, 110);
+  p.text('좀비 슬라이드 듀오', cx, 85);
 
-  p.textSize(13);
+  // ── 부제목 (제목과 간격 충분히) ──
+  p.textSize(14);
   p.fill(110);
-  p.text('2인 협력  →  배신 영역 점령 게임', cx, 165);
+  p.text('2인 협력  →  배신 영역 점령 게임', cx, 150);
 
   p.textSize(11);
-  p.fill(70);
-  p.text('제작자 : 이현서  이유진  전재민', cx, 186);
+  p.fill(65);
+  p.text('제작자 : 이현서  이유진  전재민', cx, 173);
 
-  // ── 픽셀 캐릭터 ───────────────────────────────────────
-  // ps=11 → 캐릭터 88×99px
-  const ps    = 11;
-  const charW = 8 * ps;  // 88
-  const charH = 9 * ps;  // 99
-  const charTopY = 220;
+  // ── 픽셀 캐릭터 (1.5배: ps=17) ───────────────────────
+  const ps    = 17;
+  const charW = 8 * ps;  // 136
+  const charH = 9 * ps;  // 153
+  const charTopY = 205;
 
-  // Player A: 중심 x=180, 오른쪽 바라봄
-  const axMid = 180;
+  // Player A: 중심 x=160, 오른쪽 바라봄
+  const axMid = 160;
   _drawPMap(p, _PMAP, axMid - charW / 2, charTopY, ps,
     '#C62828', '#eeeeee', '#111111', '#ffffff', false);
 
-  // Player B: 중심 x=720, 왼쪽 바라봄
-  const bxMid = 720;
+  // Player B: 중심 x=740, 왼쪽 바라봄
+  const bxMid = 740;
   _drawPMap(p, _PMAP, bxMid - charW / 2, charTopY, ps,
     '#1565C0', '#eeeeee', '#111111', '#ffffff', true);
 
-  // Zombie: 중심 x=450, ps=10 → 80×90px
-  const zps = 10;
-  const zW  = 8 * zps; // 80
-  _drawPMap(p, _ZMAP, cx - zW / 2, charTopY + 5, zps,
+  // Zombie: 중심 x=450, ps=15 → 120×135px
+  const zps  = 15;
+  const zW   = 8 * zps; // 120
+  const zTopY = charTopY + (charH - 9 * zps) / 2; // 수직 중앙 정렬
+  _drawPMap(p, _ZMAP, cx - zW / 2, zTopY, zps,
     '#2E7D32', '#ccffcc', '#1B5E20', '#e8ffe8', false);
 
-  // ── 라벨 + 키 ─────────────────────────────────────────
-  const labelY = charTopY - 20;
-  const keyY   = charTopY + charH + 18;
+  // ── PLAYER 라벨 ───────────────────────────────────────
+  const labelY = charTopY - 22;
+  p.textSize(13); p.noStroke();
+  p.fill(COLOR_A); p.text('PLAYER  A', axMid, labelY);
+  p.fill(COLOR_B); p.text('PLAYER  B', bxMid, labelY);
+  p.fill('#2E7D32'); p.text('Z O M B I E', cx, labelY);
 
-  p.textSize(13);
-  p.fill(COLOR_A);
-  p.text('PLAYER  A', axMid, labelY);
+  // ── VS 텍스트 (캐릭터 수직 중간, 수평 중간) ──────────
+  const vsY = charTopY + charH / 2;
+  // A 우끝: axMid + charW/2 = 160+68=228
+  // Z 좌끝: cx - zW/2 = 450-60=390  → VS x = (228+390)/2 = 309
+  // Z 우끝: cx + zW/2 = 450+60=510
+  // B 좌끝: bxMid - charW/2 = 740-68=672 → VS x = (510+672)/2 = 591
+  p.textSize(18);
+  p.fill(50);
+  p.text('VS', 309, vsY);
+  p.text('VS', 591, vsY);
 
-  p.textSize(12);
-  p.fill(COLOR_A);
-  p.text('W  /  A  /  S  /  D', axMid, keyY);
-
-  p.textSize(13);
-  p.fill(COLOR_B);
-  p.text('PLAYER  B', bxMid, labelY);
-
-  p.textSize(12);
-  p.fill(COLOR_B);
-  p.text('↑  /  ↓  /  ←  /  →', bxMid, keyY);
-
-  p.textSize(12);
-  p.fill('#2E7D32');
-  p.text('Z O M B I E', cx, labelY);
-
-  // ── VS + 구분선 ───────────────────────────────────────
-  p.textSize(16);
-  p.fill(45);
-  p.text('VS', 315, charTopY + charH / 2);
-  p.text('VS', 585, charTopY + charH / 2);
-
-  p.stroke(30);
+  // 구분선 (A↔Z, Z↔B 사이)
+  p.stroke(28);
   p.strokeWeight(1);
-  p.line(360, charTopY, 360, charTopY + charH);
-  p.line(540, charTopY, 540, charTopY + charH);
+  p.line(360, charTopY + 10, 360, charTopY + charH - 10);
+  p.line(540, charTopY + 10, 540, charTopY + charH - 10);
   p.noStroke();
 
-  // ── 시작하기 버튼 (y: 370~432, 높이 62) ──────────────
-  const btnW = 300;
-  const btnH = 62;
+  // ── 키캡 (charBotY+25 = 383) ─────────────────────────
+  const kw = 28, kh = 24, gap = 4;
+  const keyTopY = charTopY + charH + 25; // 383
+
+  // A 키캡: WASD 배열 (중심 axMid=160)
+  // 위쪽 행: W 하나 (가운데)
+  _drawKey(p, 'W', axMid - kw/2,           keyTopY,        kw, kh, COLOR_A);
+  // 아래 행: A S D
+  _drawKey(p, 'A', axMid - kw*1.5 - gap,   keyTopY+kh+gap, kw, kh, COLOR_A);
+  _drawKey(p, 'S', axMid - kw/2,           keyTopY+kh+gap, kw, kh, COLOR_A);
+  _drawKey(p, 'D', axMid + kw/2 + gap,     keyTopY+kh+gap, kw, kh, COLOR_A);
+
+  // B 키캡: 방향키 배열 (중심 bxMid=740)
+  _drawKey(p, '↑', bxMid - kw/2,           keyTopY,        kw, kh, COLOR_B);
+  _drawKey(p, '←', bxMid - kw*1.5 - gap,   keyTopY+kh+gap, kw, kh, COLOR_B);
+  _drawKey(p, '↓', bxMid - kw/2,           keyTopY+kh+gap, kw, kh, COLOR_B);
+  _drawKey(p, '→', bxMid + kw/2 + gap,     keyTopY+kh+gap, kw, kh, COLOR_B);
+
+  // ── 시작하기 버튼 (1.4배: 300*1.4=420w, 62*1.4≈87h) ─
+  const btnW = 420;
+  const btnH = 87;
   const btnX = cx - btnW / 2;
-  const btnY = 370;
+  const btnY = 448;
   const blink = Math.floor(p.frameCount / 18) % 2 === 0;
   p.fill(blink ? '#43A047' : '#2E7D32');
-  p.rect(btnX, btnY, btnW, btnH, 14);
+  p.rect(btnX, btnY, btnW, btnH, 16);
+  // 텍스트 두껍게: 2번 겹쳐 그리기
+  p.textSize(26);
+  p.fill(0, 60, 0);
+  p.text('▶  시작하기  (SPACE)', cx + 1, btnY + btnH / 2 + 1);
   p.fill(255);
-  p.textSize(22);
   p.text('▶  시작하기  (SPACE)', cx, btnY + btnH / 2);
 
-  // ── 게임 방법 버튼 (y: 445~475) ──────────────────────
-  const htW = 140;
-  const htH = 30;
+  // ── 게임 방법 버튼 (1.3배: 140*1.3=182w, 30*1.3≈39h) ─
+  const htW = 182;
+  const htH = 39;
   const htX = cx - htW / 2;
-  const htY = 445;
+  const htY = 551;
   p.fill(22, 22, 30);
   p.stroke(55);
   p.strokeWeight(1);
-  p.rect(htX, htY, htW, htH, 7);
+  p.rect(htX, htY, htW, htH, 8);
   p.noStroke();
   p.fill(120);
-  p.textSize(12);
+  p.textSize(14);
   p.text('게임  방법', cx, htY + htH / 2);
 
   // ── 게임 방법 팝업 ────────────────────────────────────
@@ -399,7 +424,7 @@ function drawLobby(p) {
     p.noStroke();
     p.rect(0, 0, CANVAS_W, CANVAS_H);
 
-    const pw = 360, ph = 260;
+    const pw = 380, ph = 270;
     const px = cx - pw / 2;
     const py = CANVAS_H / 2 - ph / 2;
 
