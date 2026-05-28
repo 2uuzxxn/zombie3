@@ -1,4 +1,3 @@
-// zombie.js
 let zombieBloodTimer = 0;
 let zombieSpawnTimer = 0;
 const ZOMBIE_SPAWN_INTERVAL = 300; 
@@ -19,13 +18,13 @@ class Zombie {
   }
 
   get speed() {
-    // 3. 좀비 속도 기존 대비 1.1배 상향 반영
-    return (zombieBloodTimer > 0 ? ZOMBIE_SPEED_BOOSTED : ZOMBIE_SPEED_NORMAL) * 1.1;
+    // 기존 속도의 0.8배 적용
+    return (zombieBloodTimer > 0 ? ZOMBIE_SPEED_BOOSTED : ZOMBIE_SPEED_NORMAL) * 0.8;
   }
 
   update(players, p) {
     if (!this.alive) return;
-    if (betrayalAnnounceFade > 0) return; 
+    if (betrayalAnnounceFade > 0) return; // 배신 알림창 활성화 시 이동 정지
     this.moveAccum += this.speed / FRAME_RATE;
     while (this.moveAccum >= 1) {
       this.moveAccum -= 1;
@@ -115,12 +114,9 @@ class Zombie {
       return;
     }
 
-    // 이동할 칸(nr,nc)이 좀비 영역인지 확인
-    const movingIntoOwned = getOwner(nr, nc) === OWNER_ZOMBIE;
-    if (movingIntoOwned) {
-      // 자기 땅으로 들어오는 순간: 꼬리가 있으면 항상 영역 채우기
+    const isOnOwned = getOwner(this.r, this.c) === OWNER_ZOMBIE;
+    if (isOnOwned) {
       if (this.tail.length > 0) {
-        this.tail.push({ r: this.r, c: this.c });
         const tailSet = new Set(this.tail.map(t => `${t.r},${t.c}`));
         floodFillEnclosed(tailSet, OWNER_ZOMBIE, p);
         this.tail = [];
@@ -212,7 +208,7 @@ function initZombies() {
 }
 
 function updateZombies(players, p) {
-  if (betrayalAnnounceFade > 0) return; 
+  if (betrayalAnnounceFade > 0) return; // 배신 알림창 활성화 시 가속 타이머 및 스폰 타이머 정지
   if (zombieBloodTimer > 0) zombieBloodTimer--;
 
   zombieSpawnTimer++;
