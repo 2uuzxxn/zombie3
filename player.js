@@ -1,4 +1,3 @@
-// player.js
 class Player {
   constructor(id, startR, startC, keyUp, keyDown, keyLeft, keyRight, initDr, initDc) {
     this.id = id;
@@ -39,13 +38,13 @@ class Player {
   }
 
   get speed() {
-    // 1. 플레이어 속도 기존 대비 1.1배 상향 반영
-    return (this.boostTimer > 0 ? PLAYER_SPEED * BOOST_MULTIPLIER : PLAYER_SPEED) * 1.1;
+    // 기존 속도의 1.2배 적용
+    return (this.boostTimer > 0 ? PLAYER_SPEED * BOOST_MULTIPLIER : PLAYER_SPEED) * 1.2;
   }
 
   update(otherPlayer, zombiesArr, phase, p) {
     if (!this.alive) return;
-    if (betrayalAnnounceFade > 0) return; 
+    if (betrayalAnnounceFade > 0) return; // 배신 알림창 활성화 시 플레이어 상태 업데이트 정지 (조작은 정지되나 멈춤 유지를 위해)
     if (this.boostTimer > 0) this.boostTimer--;
     if (this.steelTailTimer > 0) this.steelTailTimer--;
     if (this.bombFlash > 0) this.bombFlash--;
@@ -72,21 +71,14 @@ class Player {
       return;
     }
 
-    // 이동할 칸(nr,nc)이 자신의 영역인지 확인
-    const nextTileOwner = getOwner(nr, nc);
-    const movingIntoOwned = nextTileOwner === this.owner;
-
-    if (movingIntoOwned) {
-      // 자기 땅으로 들어오는 순간: 꼬리가 있으면 항상 영역 채우기
+    const onOwned = getOwner(this.r, this.c) === this.owner;
+    if (onOwned) {
       if (this.tail.length > 0) {
-        // 현재 위치도 꼬리에 포함시켜 경계를 완성한 뒤 fill
-        this.tail.push({ r: this.r, c: this.c });
         const tailSet = new Set(this.tail.map(t => `${t.r},${t.c}`));
         floodFillEnclosed(tailSet, this.owner, p);
         this.tail = [];
       }
     } else {
-      // 자기 땅 밖: 현재 위치를 꼬리에 추가
       this.tail.push({ r: this.r, c: this.c });
     }
 
