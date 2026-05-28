@@ -1,3 +1,4 @@
+// player.js
 class Player {
   constructor(id, startR, startC, keyUp, keyDown, keyLeft, keyRight, initDr, initDc) {
     this.id = id;
@@ -38,13 +39,12 @@ class Player {
   }
 
   get speed() {
-    // 기존 속도의 1.2배 적용
     return (this.boostTimer > 0 ? PLAYER_SPEED * BOOST_MULTIPLIER : PLAYER_SPEED) * 1.2;
   }
 
   update(otherPlayer, zombiesArr, phase, p) {
     if (!this.alive) return;
-    if (betrayalAnnounceFade > 0) return; // 배신 알림창 활성화 시 플레이어 상태 업데이트 정지 (조작은 정지되나 멈춤 유지를 위해)
+    if (betrayalAnnounceFade > 0) return; 
     if (this.boostTimer > 0) this.boostTimer--;
     if (this.steelTailTimer > 0) this.steelTailTimer--;
     if (this.bombFlash > 0) this.bombFlash--;
