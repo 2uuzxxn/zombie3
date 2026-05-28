@@ -71,7 +71,10 @@ class Player {
       return;
     }
 
-    const onOwned = getOwner(this.r, this.c) === this.owner;
+    const currentTileOwner = getOwner(nr, nc);
+    // [수정] 상대방 땅 위를 지나갈 때도 꼬리가 생기도록 하며, 자신의 땅에 도착했을 때만 영역이 채워지도록 수정
+    const onOwned = currentTileOwner === this.owner;
+    
     if (onOwned) {
       if (this.tail.length > 0) {
         const tailSet = new Set(this.tail.map(t => `${t.r},${t.c}`));
