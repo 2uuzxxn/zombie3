@@ -18,13 +18,12 @@ class Zombie {
   }
 
   get speed() {
-    // 기존 속도의 0.8배 적용
     return (zombieBloodTimer > 0 ? ZOMBIE_SPEED_BOOSTED : ZOMBIE_SPEED_NORMAL) * 0.8;
   }
 
   update(players, p) {
     if (!this.alive) return;
-    if (betrayalAnnounceFade > 0) return; // 배신 알림창 활성화 시 이동 정지
+    if (betrayalAnnounceFade > 0) return; 
     this.moveAccum += this.speed / FRAME_RATE;
     while (this.moveAccum >= 1) {
       this.moveAccum -= 1;
@@ -208,7 +207,7 @@ function initZombies() {
 }
 
 function updateZombies(players, p) {
-  if (betrayalAnnounceFade > 0) return; // 배신 알림창 활성화 시 가속 타이머 및 스폰 타이머 정지
+  if (betrayalAnnounceFade > 0) return; 
   if (zombieBloodTimer > 0) zombieBloodTimer--;
 
   zombieSpawnTimer++;
