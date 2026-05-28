@@ -1,9 +1,13 @@
+// sketch.js
+
+// [수정] 전역 변수 정의를 최상단으로 끌어올려 ReferenceError를 방지합니다.
 let phase = PHASE_LOBBY;
 let gameTimer = 0;
 let betrayalTriggered = false;
 let winner = null;
 let soloTimer = 0;
 let deadPlayerId = null;
+let betrayalAnnounceFade = 0; // 이 위치로 이동 및 초기화!
 
 // 최고 기록을 저장할 변수 (초기값 0)
 let highScore = 0;
@@ -254,7 +258,7 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
   p.text('다시 시작 (SPACE)', cx, cy+95); // UI 텍스트에서 'R /' 문구 삭제
 }
 
-let betrayalAnnounceFade = 0;
+// [수정] 아래 있던 변수 선언('let betrayalAnnounceFade = 0;')을 최상단으로 이동시켰습니다.
 function showBetrayalAnnounce(p) { betrayalAnnounceFade = FRAME_RATE * 2; }
 function drawBetrayalAnnounce(p) {
   if (betrayalAnnounceFade <= 0) return;
