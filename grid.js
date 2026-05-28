@@ -52,15 +52,18 @@ function tileColor(owner) {
   }
 }
 
-// 4. 상대방이나 좀비 땅의 종류에 상관없이 가두면 무조건 내 영역으로 채우는 알고리즘 적용
+// 꼬리(tailSet)와 기존 소유 타일을 모두 경계로 삼아, 바깥과 연결된 타일만 visited로 표시.
+// visited되지 않은 타일(= 경계로 둘러싸인 내부)은 모두 owner 영역으로 채운다.
 function floodFillEnclosed(tailSet, owner, p) {
   const visited = new Set();
   const queue = [];
 
+  // BFS 시드: 맵 가장자리 타일 중 꼬리도 아니고 내 소유도 아닌 타일 → "바깥"으로 표시
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
-      if (r === 0 || r === ROWS-1 || c === 0 || c === COLS-1) {
+      if (r === 0 || r === ROWS - 1 || c === 0 || c === COLS - 1) {
         const key = `${r},${c}`;
+        // 꼬리이거나 이미 내 소유면 경계이므로 시드에서 제외
         if (!tailSet.has(key) && grid[r][c].owner !== owner && !visited.has(key)) {
           visited.add(key);
           queue.push([r, c]);
@@ -69,29 +72,32 @@ function floodFillEnclosed(tailSet, owner, p) {
     }
   }
 
-  const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+  const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
   while (queue.length > 0) {
     const [r, c] = queue.shift();
     for (const [dr, dc] of dirs) {
-      const nr = r+dr, nc = c+dc;
+      const nr = r + dr, nc = c + dc;
       if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
       const key = `${nr},${nc}`;
-      if (visited.has(key) || tailSet.has(key)) continue;
-      if (grid[nr][nc].owner !== owner) {
-        visited.add(key);
-        queue.push([nr, nc]);
-      }
+      if (visited.has(key)) continue;
+      // 꼬리 또는 내 소유 타일은 경계 → 통과 불가
+      if (tailSet.has(key) || grid[nr][nc].owner === owner) continue;
+      visited.add(key);
+      queue.push([nr, nc]);
     }
   }
 
+  // 꼬리 타일 → 내 영역으로 확정
   for (const key of tailSet) {
     const [r, c] = key.split(',').map(Number);
     setOwner(r, c, owner);
   }
+
+  // visited되지 않은 타일(바깥과 단절된 내부) → 모두 내 영역으로 채우기
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const key = `${r},${c}`;
-      if (grid[r][c].owner !== owner && !visited.has(key) && !tailSet.has(key)) {
+      if (!visited.has(key) && !tailSet.has(key) && grid[r][c].owner !== owner) {
         setOwner(r, c, owner);
       }
     }
