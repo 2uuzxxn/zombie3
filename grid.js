@@ -1,3 +1,4 @@
+// grid.js
 let grid = [];
 
 function initGrid() {
@@ -56,11 +57,12 @@ function floodFillEnclosed(tailSet, owner, p) {
   const visited = new Set();
   const queue = [];
 
+  // 외곽(경계선)에서 시작하여 꼬리와 자신의 땅을 제외한 영역을 탐색
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       if (r === 0 || r === ROWS-1 || c === 0 || c === COLS-1) {
         const key = `${r},${c}`;
-        if (!tailSet.has(key) && grid[r][c].owner === OWNER_NONE && !visited.has(key)) {
+        if (!tailSet.has(key) && grid[r][c].owner !== owner && !visited.has(key)) {
           visited.add(key);
           queue.push([r, c]);
         }
@@ -76,7 +78,7 @@ function floodFillEnclosed(tailSet, owner, p) {
       if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
       const key = `${nr},${nc}`;
       if (visited.has(key) || tailSet.has(key)) continue;
-      if (grid[nr][nc].owner !== OWNER_NONE) continue;
+      if (grid[nr][nc].owner === owner) continue;
       visited.add(key);
       queue.push([nr, nc]);
     }
@@ -89,7 +91,7 @@ function floodFillEnclosed(tailSet, owner, p) {
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const key = `${r},${c}`;
-      if (grid[r][c].owner === OWNER_NONE && !visited.has(key) && !tailSet.has(key)) {
+      if (grid[r][c].owner !== owner && !visited.has(key) && !tailSet.has(key)) {
         setOwner(r, c, owner);
       }
     }
