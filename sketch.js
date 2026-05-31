@@ -43,66 +43,71 @@ function getAudioCtx() {
   return audioCtx;
 }
 
-// 좀비 으르렁 소리 (게임 시작/재시작) - 더 끔찍하고 좀비다운 소리
+// 좀비 으르렁 소리 (게임 시작/재시작) — 낮고 끈적한 좀비 그로울
 function playZombieRoar() {
   try {
     const ctx = getAudioCtx();
     const now = ctx.currentTime;
 
-    // 1. 낮고 거친 으르렁 (메인)
+    // ── 레이어 1: 깊고 굵은 으르렁 (sawtooth + heavy distortion)
     const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    const dist = ctx.createWaveShaper();
-    const curve = new Float32Array(512);
-    for (let i = 0; i < 512; i++) {
-      const x = (i * 2) / 512 - 1;
-      curve[i] = (Math.PI + 400) * x / (Math.PI + 400 * Math.abs(x));
+    const dist1 = ctx.createWaveShaper();
+    const g1 = ctx.createGain();
+    const curve = new Float32Array(1024);
+    for (let i = 0; i < 1024; i++) {
+      const x = (i * 2) / 1024 - 1;
+      // 강한 클리핑 왜곡
+      curve[i] = Math.max(-0.85, Math.min(0.85, x * 8)) * 0.9;
     }
-    dist.curve = curve;
+    dist1.curve = curve;
     osc1.type = 'sawtooth';
-    osc1.frequency.setValueAtTime(60, now);
-    osc1.frequency.linearRampToValueAtTime(40, now + 0.3);
-    osc1.frequency.linearRampToValueAtTime(75, now + 0.7);
-    osc1.frequency.linearRampToValueAtTime(30, now + 1.4);
-    gain1.gain.setValueAtTime(0, now);
-    gain1.gain.linearRampToValueAtTime(0.5, now + 0.08);
-    gain1.gain.setValueAtTime(0.45, now + 1.0);
-    gain1.gain.linearRampToValueAtTime(0, now + 1.5);
-    osc1.connect(dist); dist.connect(gain1); gain1.connect(ctx.destination);
-    osc1.start(now); osc1.stop(now + 1.5);
+    osc1.frequency.setValueAtTime(55, now);
+    osc1.frequency.linearRampToValueAtTime(38, now + 0.5);
+    osc1.frequency.linearRampToValueAtTime(62, now + 1.0);
+    osc1.frequency.linearRampToValueAtTime(28, now + 1.6);
+    g1.gain.setValueAtTime(0, now);
+    g1.gain.linearRampToValueAtTime(0.55, now + 0.12);
+    g1.gain.setValueAtTime(0.50, now + 1.2);
+    g1.gain.linearRampToValueAtTime(0, now + 1.8);
+    osc1.connect(dist1); dist1.connect(g1); g1.connect(ctx.destination);
+    osc1.start(now); osc1.stop(now + 1.9);
 
-    // 2. 숨소리 / 헐떡임 (노이즈)
-    const bufSize = ctx.sampleRate * 1.2;
-    const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * 0.6;
-    const noise = ctx.createBufferSource();
-    noise.buffer = buffer;
-    const bandpass = ctx.createBiquadFilter();
-    bandpass.type = 'bandpass';
-    bandpass.frequency.setValueAtTime(300, now);
-    bandpass.frequency.linearRampToValueAtTime(150, now + 1.2);
-    bandpass.Q.value = 0.8;
-    const gainN = ctx.createGain();
-    gainN.gain.setValueAtTime(0, now);
-    gainN.gain.linearRampToValueAtTime(0.18, now + 0.15);
-    gainN.gain.linearRampToValueAtTime(0.05, now + 0.6);
-    gainN.gain.linearRampToValueAtTime(0.2, now + 0.9);
-    gainN.gain.linearRampToValueAtTime(0, now + 1.3);
-    noise.connect(bandpass); bandpass.connect(gainN); gainN.connect(ctx.destination);
-    noise.start(now); noise.stop(now + 1.4);
+    // ── 레이어 2: 끈적한 숨소리 (filtered noise, 목구멍 느낌)
+    const sr = ctx.sampleRate;
+    const buf = ctx.createBuffer(1, sr * 2, sr);
+    const d = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < d.length; i++) {
+      // pink-ish noise
+      last = last * 0.96 + (Math.random() * 2 - 1) * 0.04;
+      d[i] = last * 8 + (Math.random() * 2 - 1) * 0.15;
+    }
+    const noiseSrc = ctx.createBufferSource();
+    noiseSrc.buffer = buf;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(400, now);
+    lp.frequency.linearRampToValueAtTime(180, now + 1.8);
+    lp.Q.value = 4;
+    const gN = ctx.createGain();
+    gN.gain.setValueAtTime(0, now);
+    gN.gain.linearRampToValueAtTime(0.22, now + 0.2);
+    gN.gain.setValueAtTime(0.18, now + 1.2);
+    gN.gain.linearRampToValueAtTime(0, now + 1.8);
+    noiseSrc.connect(lp); lp.connect(gN); gN.connect(ctx.destination);
+    noiseSrc.start(now); noiseSrc.stop(now + 2.0);
 
-    // 3. 높은 끽 소리 (좀비 비명 느낌)
+    // ── 레이어 3: 목 떨리는 진동 (tremolo LFO 느낌)
     const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
+    const g2 = ctx.createGain();
     osc2.type = 'square';
-    osc2.frequency.setValueAtTime(220, now + 0.5);
-    osc2.frequency.linearRampToValueAtTime(110, now + 1.0);
-    gain2.gain.setValueAtTime(0, now + 0.5);
-    gain2.gain.linearRampToValueAtTime(0.08, now + 0.55);
-    gain2.gain.linearRampToValueAtTime(0, now + 1.1);
-    osc2.connect(gain2); gain2.connect(ctx.destination);
-    osc2.start(now + 0.5); osc2.stop(now + 1.2);
+    osc2.frequency.setValueAtTime(45, now + 0.3);
+    osc2.frequency.linearRampToValueAtTime(30, now + 1.5);
+    g2.gain.setValueAtTime(0, now + 0.3);
+    g2.gain.linearRampToValueAtTime(0.06, now + 0.5);
+    g2.gain.linearRampToValueAtTime(0, now + 1.6);
+    osc2.connect(g2); g2.connect(ctx.destination);
+    osc2.start(now + 0.3); osc2.stop(now + 1.7);
   } catch(e) {}
 }
 
@@ -167,19 +172,48 @@ function playSoundPowerup() {
   } catch(e) {}
 }
 
-// 좀비 아이템 소리 (으으으)
+// 좀비 아이템 소리 — 좀비가 울부짖는 느낌
 function playSoundZombie() {
   try {
     const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+
+    // 낮은 좀비 신음 (sawtooth, 피치 내려가며)
     const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    const dist = ctx.createWaveShaper();
+    const g = ctx.createGain();
+    const c2 = new Float32Array(512);
+    for (let i = 0; i < 512; i++) {
+      const x = (i * 2) / 512 - 1;
+      c2[i] = Math.max(-0.8, Math.min(0.8, x * 6));
+    }
+    dist.curve = c2;
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(100, ctx.currentTime);
-    osc.frequency.linearRampToValueAtTime(60, ctx.currentTime + 0.5);
-    gain.gain.setValueAtTime(0.2, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.6);
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.6);
+    osc.frequency.setValueAtTime(110, now);
+    osc.frequency.linearRampToValueAtTime(65, now + 0.3);
+    osc.frequency.linearRampToValueAtTime(85, now + 0.5);
+    osc.frequency.linearRampToValueAtTime(40, now + 0.8);
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(0.4, now + 0.06);
+    g.gain.setValueAtTime(0.35, now + 0.6);
+    g.gain.linearRampToValueAtTime(0, now + 0.9);
+    osc.connect(dist); dist.connect(g); g.connect(ctx.destination);
+    osc.start(now); osc.stop(now + 1.0);
+
+    // 잡음 레이어 (목구멍 느낌)
+    const sr = ctx.sampleRate;
+    const buf = ctx.createBuffer(1, sr * 0.8, sr);
+    const nd = buf.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1);
+    const ns = ctx.createBufferSource(); ns.buffer = buf;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass';
+    bp.frequency.value = 250; bp.Q.value = 2;
+    const gn = ctx.createGain();
+    gn.gain.setValueAtTime(0, now);
+    gn.gain.linearRampToValueAtTime(0.12, now + 0.08);
+    gn.gain.linearRampToValueAtTime(0, now + 0.8);
+    ns.connect(bp); bp.connect(gn); gn.connect(ctx.destination);
+    ns.start(now); ns.stop(now + 0.9);
   } catch(e) {}
 }
 
@@ -265,26 +299,41 @@ function setup() {
 
 function _initBloodDrops() {
   bloodDrops = [];
-  // 정적인 핏자국 스플래터 생성
-  for (let i = 0; i < 22; i++) {
-    bloodDrops.push(_newBloodSplatter());
+  // 화면 테두리(가장자리) 영역에만 핏자국 배치
+  const margin = 80; // 테두리 폭
+  for (let i = 0; i < 28; i++) {
+    bloodDrops.push(_newBloodSplatter(margin));
   }
 }
 
-function _newBloodSplatter() {
+function _newBloodSplatter(margin) {
+  // 상/하/좌/우 가장자리 중 하나에 배치
+  const side = Math.floor(Math.random() * 4);
+  let x, y;
+  if (side === 0) {        // 위쪽
+    x = Math.random() * CANVAS_W;
+    y = Math.random() * margin;
+  } else if (side === 1) { // 아래쪽
+    x = Math.random() * CANVAS_W;
+    y = CANVAS_H - Math.random() * margin;
+  } else if (side === 2) { // 왼쪽
+    x = Math.random() * margin;
+    y = Math.random() * CANVAS_H;
+  } else {                 // 오른쪽
+    x = CANVAS_W - Math.random() * margin;
+    y = Math.random() * CANVAS_H;
+  }
   return {
-    x: Math.random() * CANVAS_W,
-    y: Math.random() * CANVAS_H,
-    size: 6 + Math.random() * 22,
-    alpha: 40 + Math.random() * 90,
-    // 스플래터 타입: 0=원형, 1=타원, 2=작은 방울 무리
+    x, y,
+    size: 5 + Math.random() * 18,
+    alpha: 35 + Math.random() * 65,
     type: Math.floor(Math.random() * 3),
     angle: Math.random() * Math.PI * 2,
-    drips: Math.floor(Math.random() * 4), // 흘러내리는 방울 수
-    dripOffsets: Array.from({length: 4}, () => ({
-      ox: (Math.random() - 0.5) * 20,
-      oy: Math.random() * 25 + 5,
-      size: 2 + Math.random() * 6
+    drips: Math.floor(Math.random() * 3),
+    dripOffsets: Array.from({length: 3}, () => ({
+      ox: (Math.random() - 0.5) * 16,
+      oy: Math.random() * 20 + 4,
+      size: 2 + Math.random() * 5
     }))
   };
 }
@@ -767,19 +816,22 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
     p.fill(40); p.rect(barX, statsY, barW, 14, 7);
     const wA = Math.max(4, (counts.A / totalTiles) * barW);
     p.fill(COLOR_A); p.rect(barX, statsY, wA, 14, 7, 0, 0, 7);
-    p.fill(COLOR_A); p.textAlign(p.LEFT, p.CENTER);
-    p.text(`A  ${counts.A}타일`, barX + 4, statsY + 7);
 
     p.fill(40); p.rect(barX, statsY + 22, barW, 14, 7);
     const wB = Math.max(4, (counts.B / totalTiles) * barW);
     p.fill(COLOR_B); p.rect(barX + barW - wB, statsY + 22, wB, 14, 0, 7, 7, 0);
+
+    // 바 옆에 라벨 (바 밖에 위아래로)
+    p.textSize(10); p.noStroke();
+    p.fill(COLOR_A); p.textAlign(p.LEFT, p.CENTER);
+    p.text('A  ' + counts.A + '타일', barX, statsY - 8);
     p.fill(COLOR_B); p.textAlign(p.RIGHT, p.CENTER);
-    p.text(`${counts.B}타일  B`, barX + barW - 4, statsY + 29);
+    p.text(counts.B + '타일  B', barX + barW, statsY + 22 + 14 + 8);
 
     p.fill(120); p.textAlign(p.CENTER, p.CENTER);
     p.textSize(10);
     const zPct = Math.round((counts.Z / totalTiles) * 100);
-    p.text(`좀비 점령: ${counts.Z}타일 (${zPct}%)`, cx, statsY + 50);
+    p.text('좀비 점령: ' + counts.Z + '타일 (' + zPct + '%)', cx, statsY + 50);
   }
 
   // ── 고득점
@@ -839,71 +891,67 @@ function drawLobby(p) {
   p.background(10, 10, 15);
   p.noStroke();
 
-  // ── 혈흔 스플래터 효과 (배경)
+  // ── 가장자리 혈흔 (제일 먼저 그려서 뒤에 깔리게)
   _updateDrawBloodDrops(p);
 
   p.textAlign(p.CENTER, p.CENTER);
   p.textFont('Nunito');
 
   const cx = CANVAS_W / 2;
-  // 전체 레이아웃 기준점 (CANVAS_H = 900)
-  // 제목: Y=70
-  // 부제목: Y=115
-  // 제작자: Y=138
-  // 캐릭터 영역: Y=165~330
-  // 키캡: Y=340~390
-  // 시작 버튼: Y=408~460
-  // 게임방법 버튼: Y=472~514
-  // 로그인 영역: Y=528~600
 
-  // ── 제목 (단층, 두께 있게)
+  // ─────────────────────────────────────────────
+  // CANVAS_H = 900. 요소별 수직 분배:
+  //  제목        ~Y 75
+  //  부제목      ~Y 122
+  //  제작자      ~Y 144
+  //  캐릭터      Y 175 ~ 346  (ps=19, 9행=171px)
+  //  키캡        Y 356 ~ 404
+  //  시작버튼    Y 420 ~ 476
+  //  게임방법    Y 490 ~ 530
+  //  로그인      Y 550 ~ 630
+  // ─────────────────────────────────────────────
+
+  // ── 제목 (단층 그림자)
   p.textStyle(p.BOLD);
-  p.textSize(68);
-  // 그림자 한 겹만
-  p.fill(10, 50, 12);
-  p.text('좀비 슬라이드 듀오', cx, 72);
-  // 메인 색
+  p.textSize(66);
+  p.fill(12, 55, 14);
+  p.text('좀비 슬라이드 듀오', cx, 77);
   p.fill('#4CAF50');
-  p.text('좀비 슬라이드 듀오', cx, 70);
+  p.text('좀비 슬라이드 듀오', cx, 75);
   p.textStyle(p.NORMAL);
 
   // ── 부제목
   p.textSize(13);
-  p.fill(200);
-  p.text('2인 협력  →  배신 영역 점령 게임', cx, 112);
+  p.fill(185);
+  p.text('2인 협력  →  배신 영역 점령 게임', cx, 120);
 
-  // ── 제작자 (부제목 바로 아래, 겹치지 않게)
+  // ── 제작자
   p.textSize(10);
-  p.fill(110);
-  p.text('제작자 : 이현서  이유진  전재민', cx, 130);
+  p.fill(95);
+  p.text('제작자 : 이현서  이유진  전재민', cx, 142);
 
-  // ── 구분선
-  p.stroke(40); p.strokeWeight(1);
-  p.line(80, 143, CANVAS_W - 80, 143);
-  p.noStroke();
-
-  // ── 픽셀 캐릭터 영역 (Y=155~310)
-  const ps    = 15;
+  // ── 픽셀 캐릭터 영역
+  const ps    = 19;
   const charW = 8 * ps;
-  const charH = 9 * ps;
-  const charTopY = 158;
+  const charH = 9 * ps;   // = 171
+  const charTopY = 175;
 
-  const axMid = 155;
+  const axMid = 145;
   _drawPMap(p, _PMAP, axMid - charW / 2, charTopY, ps,
     '#C62828', '#eeeeee', '#111111', '#ffffff', false);
 
-  const bxMid = CANVAS_W - 155;
+  const bxMid = CANVAS_W - 145;
   _drawPMap(p, _PMAP, bxMid - charW / 2, charTopY, ps,
     '#1565C0', '#eeeeee', '#111111', '#ffffff', true);
 
-  const zps  = 13;
+  const zps  = 16;
   const zW   = 8 * zps;
   const zTopY = charTopY + (charH - 9 * zps) / 2;
   _drawPMap(p, _ZMAP, cx - zW / 2, zTopY, zps,
     '#2E7D32', '#ccffcc', '#1B5E20', '#e8ffe8', false);
 
-  // ── PLAYER/ZOMBIE 라벨 (캐릭터 위)
-  const labelY = charTopY - 18;
+  // ── PLAYER / ZOMBIE 라벨
+  const labelY = charTopY - 20;
   p.textStyle(p.BOLD);
   p.textSize(12); p.noStroke();
   p.fill(COLOR_A); p.text('PLAYER  A', axMid, labelY);
@@ -911,55 +959,49 @@ function drawLobby(p) {
   p.fill('#2E7D32'); p.text('Z O M B I E', cx, labelY);
   p.textStyle(p.NORMAL);
 
-  // ── VS 텍스트
+  // ── VS 텍스트 (선 없음)
   const vsY = charTopY + charH / 2;
   p.textStyle(p.BOLD);
-  p.textSize(16); p.fill(55);
+  p.textSize(18); p.fill(58);
   p.text('VS', (axMid + cx) / 2, vsY);
   p.text('VS', (bxMid + cx) / 2, vsY);
   p.textStyle(p.NORMAL);
 
-  // 구분선
-  p.stroke(30); p.strokeWeight(1);
-  p.line(axMid + charW/2 + 8, charTopY + 10, cx - zW/2 - 8, charTopY + charH - 10);
-  p.line(cx + zW/2 + 8, charTopY + 10, bxMid - charW/2 - 8, charTopY + charH - 10);
-  p.noStroke();
+  // ── 키캡
+  const kw = 28, kh = 24, gap = 4;
+  const keyTopY = charTopY + charH + 10;   // ~= 356
 
-  // ── 키캡 (캐릭터 바로 아래)
-  const kw = 26, kh = 22, gap = 4;
-  const keyTopY = charTopY + charH + 10;
+  _drawKey(p, 'W', axMid - kw/2,         keyTopY,        kw, kh, COLOR_A);
+  _drawKey(p, 'A', axMid - kw*1.5 - gap, keyTopY+kh+gap, kw, kh, COLOR_A);
+  _drawKey(p, 'S', axMid - kw/2,         keyTopY+kh+gap, kw, kh, COLOR_A);
+  _drawKey(p, 'D', axMid + kw/2 + gap,   keyTopY+kh+gap, kw, kh, COLOR_A);
 
-  _drawKey(p, 'W', axMid - kw/2,          keyTopY,        kw, kh, COLOR_A);
-  _drawKey(p, 'A', axMid - kw*1.5 - gap,  keyTopY+kh+gap, kw, kh, COLOR_A);
-  _drawKey(p, 'S', axMid - kw/2,          keyTopY+kh+gap, kw, kh, COLOR_A);
-  _drawKey(p, 'D', axMid + kw/2 + gap,    keyTopY+kh+gap, kw, kh, COLOR_A);
+  _drawKey(p, '↑', bxMid - kw/2,         keyTopY,        kw, kh, COLOR_B);
+  _drawKey(p, '←', bxMid - kw*1.5 - gap, keyTopY+kh+gap, kw, kh, COLOR_B);
+  _drawKey(p, '↓', bxMid - kw/2,         keyTopY+kh+gap, kw, kh, COLOR_B);
+  _drawKey(p, '→', bxMid + kw/2 + gap,   keyTopY+kh+gap, kw, kh, COLOR_B);
 
-  _drawKey(p, '↑', bxMid - kw/2,          keyTopY,        kw, kh, COLOR_B);
-  _drawKey(p, '←', bxMid - kw*1.5 - gap,  keyTopY+kh+gap, kw, kh, COLOR_B);
-  _drawKey(p, '↓', bxMid - kw/2,          keyTopY+kh+gap, kw, kh, COLOR_B);
-  _drawKey(p, '→', bxMid + kw/2 + gap,    keyTopY+kh+gap, kw, kh, COLOR_B);
-
-  // ── 시작하기 버튼
-  const btnAreaY = keyTopY + kh * 2 + gap + 14;
-  const btnW = 380, btnH = 52;
+  // ── 시작하기 버튼  (~Y 420)
+  const btnY = keyTopY + kh * 2 + gap + 16;
+  const btnW = 380, btnH = 54;
   const btnX = cx - btnW / 2;
   const blink = Math.floor(p.frameCount / 18) % 2 === 0;
   p.fill(blink ? '#43A047' : '#2E7D32');
   p.stroke('#76FF03'); p.strokeWeight(1.5);
-  p.rect(btnX, btnAreaY, btnW, btnH, 14);
+  p.rect(btnX, btnY, btnW, btnH, 14);
   p.noStroke();
   p.textStyle(p.BOLD);
   p.textSize(21);
   p.fill(0, 50, 0);
-  p.text('▶  시작하기  (SPACE)', cx + 1, btnAreaY + btnH / 2 + 1);
+  p.text('▶  시작하기  (SPACE)', cx + 1, btnY + btnH / 2 + 1);
   p.fill(255);
-  p.text('▶  시작하기  (SPACE)', cx, btnAreaY + btnH / 2);
+  p.text('▶  시작하기  (SPACE)', cx, btnY + btnH / 2);
   p.textStyle(p.NORMAL);
 
-  // ── 게임 방법 버튼
-  const htW = 180, htH = 36;
+  // ── 게임 방법 버튼  (~Y 490)
+  const htW = 180, htH = 38;
   const htX = cx - htW / 2;
-  const htY = btnAreaY + btnH + 10;
+  const htY = btnY + btnH + 12;
   const htBlink = Math.floor(p.frameCount / 25) % 2 === 0;
   p.fill(htBlink ? '#1565C0' : '#0D47A1');
   p.stroke('#42A5F5'); p.strokeWeight(1.5);
@@ -971,30 +1013,30 @@ function drawLobby(p) {
   p.text('❓  게임 방법', cx, htY + htH / 2);
   p.textStyle(p.NORMAL);
 
-  // ── 로그인/회원가입
-  const accountY = htY + htH + 18;
+  // ── 로그인/회원가입  (~Y 550)
+  const accountY = htY + htH + 22;
   if (currentUserId) {
-    p.textSize(11); p.fill(120);
+    p.textSize(11); p.fill(115);
     p.text('로그인 중:', cx, accountY);
     p.textSize(13); p.fill(220);
-    p.text(`👤 ${currentUserId}`, cx, accountY + 18);
-    p.textSize(10); p.fill(90);
-    p.text(`최고 기록: ${highScore} 타일`, cx, accountY + 34);
-    p.fill(40, 40, 50); p.stroke(70); p.strokeWeight(1);
-    p.rect(cx - 40, accountY + 44, 80, 26, 6);
-    p.noStroke(); p.fill(150); p.textSize(11);
-    p.text('로그아웃', cx, accountY + 57);
+    p.text('👤 ' + currentUserId, cx, accountY + 20);
+    p.textSize(10); p.fill(88);
+    p.text('최고 기록: ' + highScore + ' 타일', cx, accountY + 38);
+    p.fill(38, 38, 50); p.stroke(68); p.strokeWeight(1);
+    p.rect(cx - 42, accountY + 50, 84, 28, 6);
+    p.noStroke(); p.fill(148); p.textSize(11);
+    p.text('로그아웃', cx, accountY + 64);
   } else {
-    p.fill(30, 30, 40); p.stroke(65); p.strokeWeight(1);
-    p.rect(cx - 90, accountY, 84, 30, 7);
-    p.fill(45, 45, 60); p.stroke(85);
-    p.rect(cx + 6, accountY, 84, 30, 7);
+    p.fill(28, 28, 40); p.stroke(62); p.strokeWeight(1);
+    p.rect(cx - 92, accountY, 86, 32, 7);
+    p.fill(44, 44, 58); p.stroke(80);
+    p.rect(cx + 6, accountY, 86, 32, 7);
     p.noStroke();
-    p.fill(190); p.textSize(12);
-    p.text('로그인', cx - 48, accountY + 15);
-    p.text('회원가입', cx + 48, accountY + 15);
-    p.fill(80); p.textSize(9);
-    p.text('아이디로 최고기록을 저장하세요', cx, accountY + 38);
+    p.fill(188); p.textSize(12);
+    p.text('로그인', cx - 49, accountY + 16);
+    p.text('회원가입', cx + 49, accountY + 16);
+    p.fill(78); p.textSize(9);
+    p.text('아이디로 최고기록을 저장하세요', cx, accountY + 42);
   }
 
   // ── 게임 방법 팝업
@@ -1009,7 +1051,7 @@ function drawLobby(p) {
     p.fill('#4CAF50'); p.textSize(14); p.textAlign(p.LEFT, p.TOP);
     p.text('[ 게임 방법 ]', px + 22, py + 20);
     p.textStyle(p.NORMAL);
-    p.fill(80); p.textSize(16); p.textAlign(p.RIGHT, p.TOP);
+    p.fill(90); p.textSize(16); p.textAlign(p.RIGHT, p.TOP);
     p.text('✕', px + pw - 16, py + 14);
     p.fill(145); p.textSize(11); p.textAlign(p.LEFT, p.TOP);
     const lines = [
@@ -1036,20 +1078,16 @@ function drawLobby(p) {
     const py = CANVAS_H / 2 - ph / 2;
     p.fill(16, 16, 26); p.stroke(80); p.strokeWeight(1);
     p.rect(px, py, pw, ph, 12); p.noStroke();
-
     p.textStyle(p.BOLD);
     p.fill(255); p.textSize(15); p.textAlign(p.CENTER, p.TOP);
-    const title = lobbySubState === 'login' ? '🔑  로그인' : '📝  회원가입';
-    p.text(title, cx, py + 22);
+    const popTitle = lobbySubState === 'login' ? '🔑  로그인' : '📝  회원가입';
+    p.text(popTitle, cx, py + 22);
     p.textStyle(p.NORMAL);
-
-    p.fill(80); p.textSize(16); p.textAlign(p.RIGHT, p.TOP);
+    p.fill(90); p.textSize(16); p.textAlign(p.RIGHT, p.TOP);
     p.text('✕', px + pw - 16, py + 14);
-
     p.fill(130); p.textSize(11); p.textAlign(p.CENTER, p.TOP);
     const desc = lobbySubState === 'login' ? '아이디를 입력하세요 (최대 16자)' : '새 아이디를 입력하세요 (최대 16자)';
     p.text(desc, cx, py + 52);
-
     const ibX = px + 20, ibY = py + 76, ibW = pw - 40, ibH = 36;
     p.fill(25, 25, 38); p.stroke(100); p.strokeWeight(1.5);
     p.rect(ibX, ibY, ibW, ibH, 6);
@@ -1057,22 +1095,19 @@ function drawLobby(p) {
     const cursor = Math.floor(p.frameCount / 15) % 2 === 0 ? '|' : '';
     p.fill(230); p.textSize(14); p.textAlign(p.LEFT, p.CENTER);
     p.text(inputBuffer + cursor, ibX + 10, ibY + ibH / 2);
-
     if (inputError) {
       p.fill('#FF5252'); p.textSize(11); p.textAlign(p.CENTER, p.TOP);
       p.text(inputError, cx, py + 120);
     }
-
-    const btnY2 = py + ph - 50;
+    const popBtnY = py + ph - 50;
     p.fill('#2E7D32'); p.stroke('#4CAF50'); p.strokeWeight(1);
-    p.rect(cx - 70, btnY2, 140, 34, 8);
+    p.rect(cx - 70, popBtnY, 140, 34, 8);
     p.noStroke(); p.textStyle(p.BOLD);
     p.fill(255); p.textSize(13); p.textAlign(p.CENTER, p.CENTER);
-    p.text('확인 (Enter)', cx, btnY2 + 17);
+    p.text('확인 (Enter)', cx, popBtnY + 17);
     p.textStyle(p.NORMAL);
   }
 }
-
 // ── 혈흔 스플래터 그리기 (정적)
 function _updateDrawBloodDrops(p) {
   p.noStroke();
