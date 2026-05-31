@@ -40,75 +40,68 @@ function getAudioCtx() {
   return audioCtx;
 }
 
-// 좀비 으르렁 소리 (게임 시작/재시작) — 낮고 끈적한 좀비 그로울
+// [사운드 변경] 시작 및 다시 시작 버튼: 기괴하고 웅장한 좀비 포효 사운드
 function playZombieRoar() {
   try {
     const ctx = getAudioCtx();
     const now = ctx.currentTime;
 
-    // ── 레이어 1: 깊고 굵은 으르렁 (sawtooth + heavy distortion)
+    // 레이어 1: 거칠고 무거운 디스토션 그로울
     const osc1 = ctx.createOscillator();
     const dist1 = ctx.createWaveShaper();
     const g1 = ctx.createGain();
     const curve = new Float32Array(1024);
     for (let i = 0; i < 1024; i++) {
       const x = (i * 2) / 1024 - 1;
-      curve[i] = Math.max(-0.85, Math.min(0.85, x * 8)) * 0.9;
+      curve[i] = Math.max(-0.9, Math.min(0.9, x * 12)) * 0.8;
     }
     dist1.curve = curve;
     osc1.type = 'sawtooth';
-    osc1.frequency.setValueAtTime(55, now);
-    osc1.frequency.linearRampToValueAtTime(38, now + 0.5);
-    osc1.frequency.linearRampToValueAtTime(62, now + 1.0);
-    osc1.frequency.linearRampToValueAtTime(28, now + 1.6);
+    osc1.frequency.setValueAtTime(65, now);
+    osc1.frequency.linearRampToValueAtTime(32, now + 0.4);
+    osc1.frequency.linearRampToValueAtTime(55, now + 0.9);
+    osc1.frequency.linearRampToValueAtTime(25, now + 1.5);
+    
     g1.gain.setValueAtTime(0, now);
-    g1.gain.linearRampToValueAtTime(0.55, now + 0.12);
-    g1.gain.setValueAtTime(0.50, now + 1.2);
-    g1.gain.linearRampToValueAtTime(0, now + 1.8);
+    g1.gain.linearRampToValueAtTime(0.6, now + 0.1);
+    g1.gain.setValueAtTime(0.5, now + 1.1);
+    g1.gain.linearRampToValueAtTime(0, now + 1.7);
+    
     osc1.connect(dist1); dist1.connect(g1); g1.connect(ctx.destination);
-    osc1.start(now); osc1.stop(now + 1.9);
+    osc1.start(now); osc1.stop(now + 1.8);
 
-    // ── 레이어 2: 끈적한 숨소리 (filtered noise, 목구멍 느낌)
+    // 레이어 2: 긁히는 숨소리 노이즈
     const sr = ctx.sampleRate;
-    const buf = ctx.createBuffer(1, sr * 2, sr);
+    const buf = ctx.createBuffer(1, sr * 1.8, sr);
     const d = buf.getChannelData(0);
     let last = 0;
     for (let i = 0; i < d.length; i++) {
-      last = last * 0.96 + (Math.random() * 2 - 1) * 0.04;
-      d[i] = last * 8 + (Math.random() * 2 - 1) * 0.15;
+      last = last * 0.95 + (Math.random() * 2 - 1) * 0.05;
+      d[i] = last * 10 + (Math.random() * 2 - 1) * 0.2;
     }
     const noiseSrc = ctx.createBufferSource();
     noiseSrc.buffer = buf;
+    
     const lp = ctx.createBiquadFilter();
     lp.type = 'lowpass';
-    lp.frequency.setValueAtTime(400, now);
-    lp.frequency.linearRampToValueAtTime(180, now + 1.8);
-    lp.Q.value = 4;
+    lp.frequency.setValueAtTime(350, now);
+    lp.frequency.linearRampToValueAtTime(150, now + 1.6);
+    lp.Q.value = 6;
+    
     const gN = ctx.createGain();
     gN.gain.setValueAtTime(0, now);
-    gN.gain.linearRampToValueAtTime(0.22, now + 0.2);
-    gN.gain.setValueAtTime(0.18, now + 1.2);
-    gN.gain.linearRampToValueAtTime(0, now + 1.8);
+    gN.gain.linearRampToValueAtTime(0.3, now + 0.15);
+    gN.gain.setValueAtTime(0.2, now + 1.1);
+    gN.gain.linearRampToValueAtTime(0, now + 1.7);
+    
     noiseSrc.connect(lp); lp.connect(gN); gN.connect(ctx.destination);
-    noiseSrc.start(now); noiseSrc.stop(now + 2.0);
-
-    // ── 레이어 3: 목 떨리는 진동 (tremolo LFO 느낌)
-    const osc2 = ctx.createOscillator();
-    const g2 = ctx.createGain();
-    osc2.type = 'square';
-    osc2.frequency.setValueAtTime(45, now + 0.3);
-    osc2.frequency.linearRampToValueAtTime(30, now + 1.5);
-    g2.gain.setValueAtTime(0, now + 0.3);
-    g2.gain.linearRampToValueAtTime(0.06, now + 0.5);
-    g2.gain.linearRampToValueAtTime(0, now + 1.6);
-    osc2.connect(g2); g2.connect(ctx.destination);
-    osc2.start(now + 0.3); osc2.stop(now + 1.7);
+    noiseSrc.start(now); noiseSrc.stop(now + 1.8);
   } catch(e) {}
 }
 
 // 분위기 있는 주기적 좀비 소리
 let ambientTimer = 0;
-const AMBIENT_INTERVAL = 300; // 10초마다
+const AMBIENT_INTERVAL = 300; 
 
 function playAmbientGroan() {
   try {
@@ -128,46 +121,102 @@ function playAmbientGroan() {
   } catch(e) {}
 }
 
-// 에너지드링크 마시는 소리 (꿀꺽꿀꺽)
+// [사운드 변경] 에너지드링크 캔 따는 소리 (딸깍 툭 - 치이익)
 function playSoundDrink() {
   try {
     const ctx = getAudioCtx();
-    for (let i = 0; i < 3; i++) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      const t = ctx.currentTime + i * 0.15;
-      osc.frequency.setValueAtTime(600, t);
-      osc.frequency.linearRampToValueAtTime(300, t + 0.1);
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(0.15, t + 0.02);
-      gain.gain.linearRampToValueAtTime(0, t + 0.12);
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.start(t); osc.stop(t + 0.15);
+    const now = ctx.currentTime;
+
+    // 1. 캔 탭 따는 소리 (날카로운 금속성 클릭 2방)
+    const clickOsc = ctx.createOscillator();
+    const clickGain = ctx.createGain();
+    clickOsc.type = 'triangle';
+    clickOsc.frequency.setValueAtTime(1400, now);
+    clickOsc.frequency.setValueAtTime(800, now + 0.03);
+    
+    clickGain.gain.setValueAtTime(0.3, now);
+    clickGain.gain.linearRampToValueAtTime(0.01, now + 0.05);
+    
+    clickOsc.connect(clickGain);
+    clickGain.connect(ctx.destination);
+    clickOsc.start(now);
+    clickOsc.stop(now + 0.05);
+
+    // 2. 탄산 가스 빠지는 소리 (High-pass Noise)
+    const sr = ctx.sampleRate;
+    const bufSize = sr * 0.6; // 0.6초 분량
+    const buf = ctx.createBuffer(1, bufSize, sr);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) {
+      d[i] = Math.random() * 2 - 1;
     }
+    const fizzSrc = ctx.createBufferSource();
+    fizzSrc.buffer = buf;
+
+    const hpFilter = ctx.createBiquadFilter();
+    hpFilter.type = 'highpass';
+    hpFilter.frequency.setValueAtTime(6000, now);
+    hpFilter.frequency.exponentialRampToValueAtTime(2500, now + 0.5);
+
+    const fizzGain = ctx.createGain();
+    fizzGain.gain.setValueAtTime(0, now + 0.01);
+    fizzGain.gain.linearRampToValueAtTime(0.25, now + 0.04); // 가스 분출 피크
+    fizzGain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+
+    fizzSrc.connect(hpFilter);
+    hpFilter.connect(fizzGain);
+    fizzGain.connect(ctx.destination);
+    
+    fizzSrc.start(now + 0.01);
+    fizzSrc.stop(now + 0.6);
   } catch(e) {}
 }
 
-// 좋은 아이템 획득 소리 (번쩍번쩍)
+// [사운드 변경] 약(좀비타일) 먹었을 때: 날카롭고 신경질적인 좀비 비명 소리
 function playSoundPowerup() {
   try {
     const ctx = getAudioCtx();
-    const freqs = [523, 659, 784, 1047];
-    freqs.forEach((f, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'square';
-      const t = ctx.currentTime + i * 0.08;
-      osc.frequency.setValueAtTime(f, t);
-      gain.gain.setValueAtTime(0.12, t);
-      gain.gain.linearRampToValueAtTime(0, t + 0.1);
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.start(t); osc.stop(t + 0.12);
-    });
+    const now = ctx.currentTime;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(350, now);
+    osc.frequency.linearRampToValueAtTime(650, now + 0.15);
+    osc.frequency.exponentialRampToValueAtTime(180, now + 0.4);
+    
+    // 비명에 바이브레이션 효과 추가 (LFO)
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.type = 'square';
+    lfo.frequency.value = 22; 
+    lfoGain.gain.value = 45; 
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+    lfo.start(now);
+    lfo.stop(now + 0.4);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.35, now + 0.05);
+    gain.gain.linearRampToValueAtTime(0.2, now + 0.2);
+    gain.gain.linearRampToValueAtTime(0, now + 0.4);
+
+    // 하이패스 필터로 카랑카랑하게 조절
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1000;
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start(now);
+    osc.stop(now + 0.4);
   } catch(e) {}
 }
 
-// 좀비 아이템 소리 — 좀비가 울부짖는 느낌
+// [사운드 변경] 피 먹었을 때: 피가 끓어오르며 낮게 크르릉거리는 좀비 소리
 function playSoundZombie() {
   try {
     const ctx = getAudioCtx();
@@ -179,32 +228,40 @@ function playSoundZombie() {
     const c2 = new Float32Array(512);
     for (let i = 0; i < 512; i++) {
       const x = (i * 2) / 512 - 1;
-      c2[i] = Math.max(-0.8, Math.min(0.8, x * 6));
+      c2[i] = Math.max(-0.8, Math.min(0.8, x * 8));
     }
     dist.curve = c2;
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(110, now);
-    osc.frequency.linearRampToValueAtTime(65, now + 0.3);
-    osc.frequency.linearRampToValueAtTime(85, now + 0.5);
-    osc.frequency.linearRampToValueAtTime(40, now + 0.8);
+    osc.frequency.setValueAtTime(90, now);
+    osc.frequency.linearRampToValueAtTime(45, now + 0.4);
+    osc.frequency.linearRampToValueAtTime(70, now + 0.7);
+    osc.frequency.linearRampToValueAtTime(35, now + 1.0);
+    
     g.gain.setValueAtTime(0, now);
-    g.gain.linearRampToValueAtTime(0.4, now + 0.06);
-    g.gain.setValueAtTime(0.35, now + 0.6);
-    g.gain.linearRampToValueAtTime(0, now + 0.9);
+    g.gain.linearRampToValueAtTime(0.45, now + 0.05);
+    g.gain.setValueAtTime(0.3, now + 0.7);
+    g.gain.linearRampToValueAtTime(0, now + 1.0);
+    
     osc.connect(dist); dist.connect(g); g.connect(ctx.destination);
     osc.start(now); osc.stop(now + 1.0);
 
+    // 끈적거리는 물방울 피치 노이즈 레이어 결합
     const sr = ctx.sampleRate;
-    const buf = ctx.createBuffer(1, sr * 0.8, sr);
+    const buf = ctx.createBuffer(1, sr * 0.9, sr);
     const nd = buf.getChannelData(0);
     for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1);
     const ns = ctx.createBufferSource(); ns.buffer = buf;
-    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass';
-    bp.frequency.value = 250; bp.Q.value = 2;
+    
+    const bp = ctx.createBiquadFilter(); 
+    bp.type = 'bandpass';
+    bp.frequency.value = 180; 
+    bp.Q.value = 3;
+    
     const gn = ctx.createGain();
     gn.gain.setValueAtTime(0, now);
-    gn.gain.linearRampToValueAtTime(0.12, now + 0.08);
-    gn.gain.linearRampToValueAtTime(0, now + 0.8);
+    gn.gain.linearRampToValueAtTime(0.18, now + 0.1);
+    gn.gain.linearRampToValueAtTime(0, now + 0.9);
+    
     ns.connect(bp); bp.connect(gn); gn.connect(ctx.destination);
     ns.start(now); ns.stop(now + 0.9);
   } catch(e) {}
@@ -292,7 +349,7 @@ function setup() {
 
 function _initBloodDrops() {
   bloodDrops = [];
-  const margin = 120; // 화면 테두리 가해 폭 확대 배치
+  const margin = 120; 
   for (let i = 0; i < 35; i++) {
     bloodDrops.push(_newBloodSplatter(margin));
   }
@@ -408,7 +465,6 @@ function draw() {
 }
 
 function _drawFillAnim(p) {
-  // FILL_SPEED 속도로 위에서 아래로 행을 점진적으로 채워나감
   fillAnimRow += FILL_SPEED;
   if (fillAnimRow >= ROWS) {
     fillAnimRow = ROWS;
@@ -416,7 +472,6 @@ function _drawFillAnim(p) {
   }
 
   p.noStroke();
-  // 현재까지 활성화된 행을 단색 면으로 깔끔하게 드로우 (번잡한 픽셀효과 제거)
   const col = p.color(pixelFillColor);
   p.fill(col);
   p.rect(0, 0, CANVAS_W, fillAnimRow * TILE_SIZE);
@@ -525,7 +580,7 @@ function _endGame(reason) {
   }
 
   fillAnimActive = true;
-  fillAnimRow = 0; // 최상단부터 시작
+  fillAnimRow = 0; 
   pixelFillColor = winner === 'A' ? COLOR_A :
                    winner === 'B' ? COLOR_B :
                    winner === 'draw' ? '#FFD600' : COLOR_ZOMBIE;
@@ -613,34 +668,27 @@ function mousePressed() {
   }
 
   if (phase === PHASE_LOBBY) {
-    // 완전 균등 분배 레이아웃 기반 정밀 마우스 클릭 좌표 매칭
     const startBtnY = 490;
     const howtoBtnY = startBtnY + 80;
     const accountAreaY = howtoBtnY + 90;
 
-    // 1. 시작하기 버튼 (Y: 490 ~ 546)
     if (mouseX > cx - 190 && mouseX < cx + 190 && mouseY > startBtnY && mouseY < startBtnY + 56) {
       playZombieRoar();
       phase = PHASE_COOP; 
       return;
     }
-    // 2. 게임 방법 버튼 (Y: 570 ~ 610)
     if (mouseX > cx - 100 && mouseX < cx + 100 && mouseY > howtoBtnY && mouseY < howtoBtnY + 40) {
       showHowto = true; 
       return;
     }
-    // 3. 로그인 / 회원가입 / 로그아웃 관련 클릭 처리
     if (currentUserId) {
-      // 로그아웃 버튼 (Y: accountAreaY + 54 ~ accountAreaY + 84)
       if (mouseX > cx - 45 && mouseX < cx + 45 && mouseY > accountAreaY + 54 && mouseY < accountAreaY + 84) {
         currentUserId = null; highScore = 0; return;
       }
     } else {
-      // 로그인 버튼 (Y: accountAreaY ~ accountAreaY + 34)
       if (mouseX > cx - 94 && mouseX < cx - 4 && mouseY > accountAreaY && mouseY < accountAreaY + 34) {
         lobbySubState = 'login'; inputBuffer = ''; inputError = ''; return;
       }
-      // 회원가입 버튼 (Y: accountAreaY ~ accountAreaY + 34)
       if (mouseX > cx + 4 && mouseX < cx + 94 && mouseY > accountAreaY && mouseY < accountAreaY + 34) {
         lobbySubState = 'register'; inputBuffer = ''; inputError = ''; return;
       }
@@ -824,7 +872,7 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
   p.textStyle(p.NORMAL);
 }
 
-// ── 로비 화면 (UI 분포 균등 리디자인)
+// ── 로비 화면
 function drawLobby(p) {
   p.background(10, 10, 15);
   p.noStroke();
@@ -836,7 +884,6 @@ function drawLobby(p) {
 
   const cx = CANVAS_W / 2;
 
-  // 1. 대형 게임 타이틀 영역 (위치: Y 85)
   p.textStyle(p.BOLD);
   p.textSize(64);
   p.fill(12, 55, 14);
@@ -845,17 +892,14 @@ function drawLobby(p) {
   p.text('좀비 슬라이드 듀오', cx, 85);
   p.textStyle(p.NORMAL);
 
-  // 부제목 (위치: Y 140)
   p.textSize(14);
   p.fill(195);
   p.text('2인 협력  →  배신 영역 점령 게임', cx, 140);
 
-  // 제작자 정보 (위치: Y 170)
   p.textSize(11);
   p.fill(105);
   p.text('제작자 : 이현서  이유진  전재민', cx, 170);
 
-  // 2. 캐릭터 그래픽 및 키보드 매핑 영역을 한데 묶어 중단 배치 (위치: Y 230)
   const ps    = 18;
   const charW = 8 * ps;
   const charH = 9 * ps;   
@@ -872,7 +916,6 @@ function drawLobby(p) {
   const zTopY = charTopY + (charH - 9 * zps) / 2;
   _drawPMap(p, _ZMAP, cx - zW / 2, zTopY, zps, '#2E7D32', '#ccffcc', '#1B5E20', '#e8ffe8', false);
 
-  // 캐릭터 상단 라벨
   const labelY = charTopY - 20;
   p.textStyle(p.BOLD);
   p.textSize(12); p.noStroke();
@@ -881,7 +924,6 @@ function drawLobby(p) {
   p.fill('#2E7D32'); p.text('Z O M B I E', cx, labelY);
   p.textStyle(p.NORMAL);
 
-  // VS 라벨
   const vsY = charTopY + charH / 2;
   p.textStyle(p.BOLD);
   p.textSize(18); p.fill(62);
@@ -889,7 +931,6 @@ function drawLobby(p) {
   p.text('VS', (bxMid + cx) / 2, vsY);
   p.textStyle(p.NORMAL);
 
-  // 키캡 매핑 (위치: Y 415)
   const kw = 28, kh = 24, gap = 4;
   const keyTopY = charTopY + charH + 20;   
 
@@ -903,8 +944,6 @@ function drawLobby(p) {
   _drawKey(p, '↓', bxMid - kw/2,         keyTopY+kh+gap, kw, kh, COLOR_B);
   _drawKey(p, '→', bxMid + kw/2 + gap,   keyTopY+kh+gap, kw, kh, COLOR_B);
 
-  // 3. 메인 기능 버튼들을 수직축 아래로 넓게 분포
-  // 시작하기 버튼 (위치: Y 490)
   const startBtnY = 490;
   const btnW = 380, btnH = 56;
   const btnX = cx - btnW / 2;
@@ -921,7 +960,6 @@ function drawLobby(p) {
   p.text('▶  시작하기  (SPACE)', cx, startBtnY + btnH / 2);
   p.textStyle(p.NORMAL);
 
-  // 게임 방법 버튼 (위치: Y 570)
   const howtoBtnY = startBtnY + 80;
   const htW = 200, htH = 40;
   const htX = cx - htW / 2;
@@ -936,7 +974,6 @@ function drawLobby(p) {
   p.text('❓  게임 방법', cx, howtoBtnY + htH / 2);
   p.textStyle(p.NORMAL);
 
-  // 4. 로그인 / 계정 인포 영역을 하단에 안정감 있게 정착 (위치: Y 660)
   const accountAreaY = howtoBtnY + 90;
   if (currentUserId) {
     p.textSize(12); p.fill(130);
@@ -963,7 +1000,6 @@ function drawLobby(p) {
     p.text('아이디로 로그인하여 최고기록을 관리하세요', cx, accountAreaY + 48);
   }
 
-  // ── 게임 방법 팝업
   if (showHowto) {
     p.fill(0, 0, 0, 190); p.noStroke(); p.rect(0, 0, CANVAS_W, CANVAS_H);
     const pw = 390, ph = 280;
@@ -994,7 +1030,6 @@ function drawLobby(p) {
     }
   }
 
-  // ── 로그인/회원가입 팝업
   if (lobbySubState === 'login' || lobbySubState === 'register') {
     p.fill(0, 0, 0, 200); p.noStroke(); p.rect(0, 0, CANVAS_W, CANVAS_H);
     const pw = 340, ph = 200;
