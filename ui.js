@@ -1,3 +1,4 @@
+// ui.js
 let notifications = [];
 
 function showNotification(playerId, msg, color) {
@@ -7,7 +8,7 @@ function showNotification(playerId, msg, color) {
 
 function drawUI(p, phase, timeLeft, counts) {
   p.push();
-  p.textFont('monospace');
+  p.textFont('Nunito');
 
   const hudH = 40;
   p.noStroke(); p.fill(0, 0, 0, 210);
@@ -18,7 +19,6 @@ function drawUI(p, phase, timeLeft, counts) {
 
   p.fill(40); p.rect(barX, barY, barW, barH, 5);
   
-  // 배신타임 전 (협력 PHASE_COOP 또는 솔로 PHASE_SOLO 페이즈)
   if (phase === PHASE_COOP || phase === PHASE_SOLO) {
     const wZombie = Math.max(0, (counts.Z / totalTiles) * barW);
     const wTeam = Math.max(0, (counts.team / totalTiles) * barW);
@@ -26,23 +26,25 @@ function drawUI(p, phase, timeLeft, counts) {
     if (wZombie > 0) { p.fill(COLOR_ZOMBIE); p.rect(barX, barY, wZombie, barH, 5, 0, 0, 5); }
     if (wTeam > 0) { p.fill(COLOR_TEAM); p.rect(barX + barW - wTeam, barY, wTeam, barH, 0, 5, 5, 0); }
     
+    p.textStyle(p.BOLD);
     p.fill(COLOR_ZOMBIE); p.textSize(10); p.textAlign(p.LEFT, p.CENTER);
     p.text(`Z: ${counts.Z}`, barX, 14);
     p.fill(COLOR_TEAM); p.textAlign(p.RIGHT, p.CENTER);
     p.text(`TEAM: ${counts.team}`, barX + barW, 14);
-  } 
-  // 배신타임 시작 후 (PHASE_BETRAYAL)
-  else {
+    p.textStyle(p.NORMAL);
+  } else {
     const wA = Math.max(0, (counts.A / totalTiles) * barW);
     const wB = Math.max(0, (counts.B / totalTiles) * barW);
     
     if (wA > 0) { p.fill(COLOR_A); p.rect(barX, barY, wA, barH, 5, 0, 0, 5); }
     if (wB > 0) { p.fill(COLOR_B); p.rect(barX + barW - wB, barY, wB, barH, 0, 5, 5, 0); }
     
+    p.textStyle(p.BOLD);
     p.fill(COLOR_A); p.textSize(10); p.textAlign(p.LEFT, p.CENTER);
     p.text(`A: ${counts.A}`, barX, 14);
     p.fill(COLOR_B); p.textAlign(p.RIGHT, p.CENTER);
     p.text(`B: ${counts.B}`, barX + barW, 14);
+    p.textStyle(p.NORMAL);
   }
 
   const timeFraction = Math.max(0, Math.min(1, timeLeft / GAME_TOTAL_TIME));
@@ -58,6 +60,7 @@ function drawUI(p, phase, timeLeft, counts) {
   const secs = Math.floor(timeLeft%60);
   const timeStr = `${mins}:${secs.toString().padStart(2,'0')}`;
   
+  p.textStyle(p.BOLD);
   p.textAlign(p.CENTER, p.CENTER);
   if (phase === PHASE_BETRAYAL) {
     p.fill(timeLeft < 10 ? (p.frameCount%10<5?'#FF1744':'#FF8A80') : '#FF5252');
@@ -70,6 +73,7 @@ function drawUI(p, phase, timeLeft, counts) {
     p.text(timeStr, CANVAS_W/2, 13);
   }
 
+  p.textStyle(p.NORMAL);
   p.textSize(9); p.textAlign(p.CENTER, p.BOTTOM);
   if (phase === PHASE_COOP)     { p.fill('#4CAF50'); p.text('[ 협력 페이즈 ]', CANVAS_W/2, 38); }
   else if (phase === PHASE_SOLO){ p.fill('#FF9800'); p.text('[ 한 명 사망 — 제한시간! ]', CANVAS_W/2, 38); }
@@ -85,8 +89,10 @@ function drawUI(p, phase, timeLeft, counts) {
   _drawPlayerStatus(p, playerB, CANVAS_W-10, hudH+10, 'B');
 
   if (zombieBloodTimer > 0) {
+    p.textStyle(p.BOLD);
     p.fill('#E53935'); p.textSize(10); p.textAlign(p.CENTER, p.TOP);
     p.text(`🩸 좀비 가속 ${Math.ceil(zombieBloodTimer/FRAME_RATE)}초`, CANVAS_W/2, hudH+10);
+    p.textStyle(p.NORMAL);
   }
 
   _drawNotifications(p);
@@ -95,6 +101,7 @@ function drawUI(p, phase, timeLeft, counts) {
 
 function _drawPlayerStatus(p, player, x, y, label) {
   if (!player) return;
+  p.textStyle(p.BOLD);
   p.textSize(10); p.noStroke();
   const icons = [];
   if (player.boostTimer > 0) icons.push(`⚡${Math.ceil(player.boostTimer/FRAME_RATE)}s`);
@@ -102,9 +109,11 @@ function _drawPlayerStatus(p, player, x, y, label) {
   p.fill(label==='A' ? COLOR_A : COLOR_B);
   p.textAlign(label==='A' ? p.LEFT : p.RIGHT, p.TOP);
   p.text(`P${label} ${!player.alive?'💀':'●'} ${icons.join(' ')}`, x, y);
+  p.textStyle(p.NORMAL);
 }
 
 function _drawNotifications(p) {
+  p.textFont('Nunito');
   for (let i = notifications.length-1; i >= 0; i--) {
     const n = notifications[i];
     if (betrayalAnnounceFade <= 0) n.timer--;
@@ -115,7 +124,9 @@ function _drawNotifications(p) {
     p.rect(10, yPos-10, CANVAS_W-20, 20, 4);
     const c = p.color(n.color);
     p.fill(p.red(c), p.green(c), p.blue(c), alpha);
+    p.textStyle(p.BOLD);
     p.textSize(11); p.textAlign(p.CENTER, p.CENTER);
     p.text(n.msg, CANVAS_W/2, yPos);
+    p.textStyle(p.NORMAL);
   }
 }
