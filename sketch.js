@@ -21,14 +21,11 @@ let inputError  = '';
 let highScore = 0;
 let isNewHighScore = false;
 
-// ── 승리 애니메이션 (픽셀 스캐터 방식)
+// ── 승리 애니메이션 (위에서 아래로 채워지는 스캔라인 방식)
 let fillAnimActive = false;
 let fillAnimRow = 0;
-const FILL_SPEED = 2;
-let pixelFillQueue = [];
-let pixelFillDone = new Set();
+const FILL_SPEED = 1.5; // 한 프레임에 채워질 행(Row)의 수
 let pixelFillColor = '';
-const PIXEL_FILL_PER_FRAME = 55;
 
 // ── 혈흔 파티클 (로비 효과)
 let bloodDrops = [];
@@ -56,7 +53,6 @@ function playZombieRoar() {
     const curve = new Float32Array(1024);
     for (let i = 0; i < 1024; i++) {
       const x = (i * 2) / 1024 - 1;
-      // 강한 클리핑 왜곡
       curve[i] = Math.max(-0.85, Math.min(0.85, x * 8)) * 0.9;
     }
     dist1.curve = curve;
@@ -78,7 +74,6 @@ function playZombieRoar() {
     const d = buf.getChannelData(0);
     let last = 0;
     for (let i = 0; i < d.length; i++) {
-      // pink-ish noise
       last = last * 0.96 + (Math.random() * 2 - 1) * 0.04;
       d[i] = last * 8 + (Math.random() * 2 - 1) * 0.15;
     }
@@ -178,7 +173,6 @@ function playSoundZombie() {
     const ctx = getAudioCtx();
     const now = ctx.currentTime;
 
-    // 낮은 좀비 신음 (sawtooth, 피치 내려가며)
     const osc = ctx.createOscillator();
     const dist = ctx.createWaveShaper();
     const g = ctx.createGain();
@@ -200,7 +194,6 @@ function playSoundZombie() {
     osc.connect(dist); dist.connect(g); g.connect(ctx.destination);
     osc.start(now); osc.stop(now + 1.0);
 
-    // 잡음 레이어 (목구멍 느낌)
     const sr = ctx.sampleRate;
     const buf = ctx.createBuffer(1, sr * 0.8, sr);
     const nd = buf.getChannelData(0);
@@ -299,34 +292,32 @@ function setup() {
 
 function _initBloodDrops() {
   bloodDrops = [];
-  // 화면 테두리(가장자리) 영역에만 핏자국 배치
-  const margin = 80; // 테두리 폭
-  for (let i = 0; i < 28; i++) {
+  const margin = 120; // 화면 테두리 가해 폭 확대 배치
+  for (let i = 0; i < 35; i++) {
     bloodDrops.push(_newBloodSplatter(margin));
   }
 }
 
 function _newBloodSplatter(margin) {
-  // 상/하/좌/우 가장자리 중 하나에 배치
   const side = Math.floor(Math.random() * 4);
   let x, y;
-  if (side === 0) {        // 위쪽
+  if (side === 0) {        
     x = Math.random() * CANVAS_W;
     y = Math.random() * margin;
-  } else if (side === 1) { // 아래쪽
+  } else if (side === 1) { 
     x = Math.random() * CANVAS_W;
     y = CANVAS_H - Math.random() * margin;
-  } else if (side === 2) { // 왼쪽
+  } else if (side === 2) { 
     x = Math.random() * margin;
     y = Math.random() * CANVAS_H;
-  } else {                 // 오른쪽
+  } else {                 
     x = CANVAS_W - Math.random() * margin;
     y = Math.random() * CANVAS_H;
   }
   return {
     x, y,
-    size: 5 + Math.random() * 18,
-    alpha: 35 + Math.random() * 65,
+    size: 6 + Math.random() * 22,
+    alpha: 30 + Math.random() * 60,
     type: Math.floor(Math.random() * 3),
     angle: Math.random() * Math.PI * 2,
     drips: Math.floor(Math.random() * 3),
@@ -365,7 +356,6 @@ function draw() {
   background(COLOR_EMPTY);
   if (phase === PHASE_LOBBY) { drawLobby(this); return; }
 
-  // 게임 중 주기적 좀비 소리
   if (phase !== PHASE_END) {
     ambientTimer++;
     if (ambientTimer >= AMBIENT_INTERVAL) {
@@ -418,35 +408,18 @@ function draw() {
 }
 
 function _drawFillAnim(p) {
-  // 이번 프레임에 채울 칸들 처리
-  let filled = 0;
-  while (pixelFillQueue.length > 0 && filled < PIXEL_FILL_PER_FRAME) {
-    const idx = pixelFillQueue.pop();
-    const r = Math.floor(idx / COLS);
-    const c = idx % COLS;
-    pixelFillDone.add(idx);
-    filled++;
-  }
-
-  // 이미 채워진 칸 그리기
-  p.noStroke();
-  for (const idx of pixelFillDone) {
-    const r = Math.floor(idx / COLS);
-    const c = idx % COLS;
-    // 픽셀 노이즈 느낌: 살짝 밝기 변화
-    const flicker = Math.sin(idx * 7.3 + p.frameCount * 0.3) * 18;
-    const col = p.color(pixelFillColor);
-    p.fill(
-      Math.min(255, Math.max(0, p.red(col) + flicker)),
-      Math.min(255, Math.max(0, p.green(col) + flicker)),
-      Math.min(255, Math.max(0, p.blue(col) + flicker))
-    );
-    p.rect(c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-  }
-
-  if (pixelFillQueue.length === 0) {
+  // FILL_SPEED 속도로 위에서 아래로 행을 점진적으로 채워나감
+  fillAnimRow += FILL_SPEED;
+  if (fillAnimRow >= ROWS) {
+    fillAnimRow = ROWS;
     fillAnimActive = false;
   }
+
+  p.noStroke();
+  // 현재까지 활성화된 행을 단색 면으로 깔끔하게 드로우 (번잡한 픽셀효과 제거)
+  const col = p.color(pixelFillColor);
+  p.fill(col);
+  p.rect(0, 0, CANVAS_W, fillAnimRow * TILE_SIZE);
 }
 
 function _triggerBetrayal() {
@@ -456,18 +429,15 @@ function _triggerBetrayal() {
   const midC = Math.floor(COLS / 2);
   const midR = Math.floor(ROWS / 2);
 
-  // 플레이어 부활 위치 설정
   if (!playerA.alive) playerA.revive(midR - 3, midC - 5, OWNER_A);
   if (!playerB.alive) playerB.revive(midR + 3, midC + 5, OWNER_B);
 
-  // ── 핵심 수정: TEAM 땅만 반반 분할, 나머지(NONE, ZOMBIE)는 그대로 유지
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       if (grid[r][c].owner === OWNER_TEAM) {
         grid[r][c].owner = c < midC ? OWNER_A : OWNER_B;
         grid[r][c].dirty = true;
       }
-      // OWNER_NONE, OWNER_ZOMBIE 는 건드리지 않음
     }
   }
 
@@ -503,7 +473,6 @@ function _reviveDeadPlayer() {
   const dead = deadPlayerId === 'A' ? playerA : playerB;
   const deadSpawnR = midR + (deadPlayerId === 'A' ? -3 : 3);
 
-  // TEAM 땅만 절반 분할 (NONE, ZOMBIE 는 그대로)
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       if (grid[r][c].owner === OWNER_TEAM) {
@@ -537,8 +506,6 @@ function _endGame(reason) {
     else                      { winner = 'zombie'; }
   } else if (reason === 'both_dead') {
     winner = 'zombie';
-  } else if (reason === 'elimination') {
-    // already set
   }
 
   if (!betrayalTriggered) {
@@ -558,19 +525,10 @@ function _endGame(reason) {
   }
 
   fillAnimActive = true;
-  fillAnimRow = 0;
-  // 픽셀 채우기 초기화: 랜덤 순서로 섞기
+  fillAnimRow = 0; // 최상단부터 시작
   pixelFillColor = winner === 'A' ? COLOR_A :
                    winner === 'B' ? COLOR_B :
                    winner === 'draw' ? '#FFD600' : COLOR_ZOMBIE;
-  pixelFillDone = new Set();
-  pixelFillQueue = [];
-  for (let i = 0; i < ROWS * COLS; i++) pixelFillQueue.push(i);
-  // Fisher-Yates shuffle
-  for (let i = pixelFillQueue.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pixelFillQueue[i], pixelFillQueue[j]] = [pixelFillQueue[j], pixelFillQueue[i]];
-  }
 }
 
 // ── 키보드 입력
@@ -642,7 +600,7 @@ function mousePressed() {
   }
 
   if (phase === PHASE_LOBBY && showHowto) {
-    const pw = 380, ph = 270;
+    const pw = 390, ph = 280;
     const px = cx - pw / 2;
     const py = CANVAS_H / 2 - ph / 2;
     if (mouseX > px + pw - 36 && mouseX < px + pw - 6 && mouseY > py + 6 && mouseY < py + 36) {
@@ -655,37 +613,35 @@ function mousePressed() {
   }
 
   if (phase === PHASE_LOBBY) {
-    const cx = CANVAS_W / 2;
-    // 새 레이아웃 기준으로 버튼 위치 재계산
-    const ps = 15, charH = 9 * ps;
-    const charTopY = 158;
-    const kh = 22, gap = 4;
-    const keyTopY = charTopY + charH + 10;
-    const btnAreaY = keyTopY + kh * 2 + gap + 14;
-    const btnW = 380, btnH = 52;
-    const htH = 36;
-    const htY = btnAreaY + btnH + 10;
-    const accountY = htY + htH + 18;
+    // 완전 균등 분배 레이아웃 기반 정밀 마우스 클릭 좌표 매칭
+    const startBtnY = 490;
+    const howtoBtnY = startBtnY + 80;
+    const accountAreaY = howtoBtnY + 90;
 
-    // 시작하기 버튼
-    if (mouseX > cx - btnW/2 && mouseX < cx + btnW/2 && mouseY > btnAreaY && mouseY < btnAreaY + btnH) {
+    // 1. 시작하기 버튼 (Y: 490 ~ 546)
+    if (mouseX > cx - 190 && mouseX < cx + 190 && mouseY > startBtnY && mouseY < startBtnY + 56) {
       playZombieRoar();
-      phase = PHASE_COOP; return;
+      phase = PHASE_COOP; 
+      return;
     }
-    // 게임 방법 버튼
-    if (mouseX > cx - 90 && mouseX < cx + 90 && mouseY > htY && mouseY < htY + htH) {
-      showHowto = true; return;
+    // 2. 게임 방법 버튼 (Y: 570 ~ 610)
+    if (mouseX > cx - 100 && mouseX < cx + 100 && mouseY > howtoBtnY && mouseY < howtoBtnY + 40) {
+      showHowto = true; 
+      return;
     }
-    // 로그아웃
+    // 3. 로그인 / 회원가입 / 로그아웃 관련 클릭 처리
     if (currentUserId) {
-      if (mouseX > cx - 40 && mouseX < cx + 40 && mouseY > accountY + 44 && mouseY < accountY + 70) {
+      // 로그아웃 버튼 (Y: accountAreaY + 54 ~ accountAreaY + 84)
+      if (mouseX > cx - 45 && mouseX < cx + 45 && mouseY > accountAreaY + 54 && mouseY < accountAreaY + 84) {
         currentUserId = null; highScore = 0; return;
       }
     } else {
-      if (mouseX > cx - 90 && mouseX < cx - 6 && mouseY > accountY && mouseY < accountY + 30) {
+      // 로그인 버튼 (Y: accountAreaY ~ accountAreaY + 34)
+      if (mouseX > cx - 94 && mouseX < cx - 4 && mouseY > accountAreaY && mouseY < accountAreaY + 34) {
         lobbySubState = 'login'; inputBuffer = ''; inputError = ''; return;
       }
-      if (mouseX > cx + 6 && mouseX < cx + 90 && mouseY > accountY && mouseY < accountY + 30) {
+      // 회원가입 버튼 (Y: accountAreaY ~ accountAreaY + 34)
+      if (mouseX > cx + 4 && mouseX < cx + 94 && mouseY > accountAreaY && mouseY < accountAreaY + 34) {
         lobbySubState = 'register'; inputBuffer = ''; inputError = ''; return;
       }
     }
@@ -693,7 +649,6 @@ function mousePressed() {
 
   if (phase === PHASE_END) {
     const cy = CANVAS_H / 2;
-    // 다시하기 버튼 영역 (새 레이아웃에 맞게)
     if (mouseX > cx - 110 && mouseX < cx + 110 && mouseY > cy + 110 && mouseY < cy + 155) {
       playZombieRoar();
       resetGame(); return;
@@ -717,22 +672,18 @@ function drawBetrayalAnnounce(p) {
   p.textStyle(p.NORMAL);
 }
 
-// ── 결과 화면 (완전 리디자인)
+// ── 결과 화면
 function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
   const cx = CANVAS_W / 2, cy = CANVAS_H / 2;
 
-  // 배경 오버레이
   p.fill(0, 0, 0, 210); p.noStroke(); p.rect(0, 0, CANVAS_W, CANVAS_H);
 
-  // 메인 패널
   const panW = 460, panH = 380;
   const panX = cx - panW / 2, panY = cy - panH / 2;
 
-  // 패널 그림자
   p.fill(0, 0, 0, 120); p.noStroke();
   p.rect(panX + 6, panY + 6, panW, panH, 18);
 
-  // 패널 배경
   let panelBg = winner === 'A' ? p.color(30, 10, 10) :
                 winner === 'B' ? p.color(10, 15, 30) :
                 winner === 'draw' ? p.color(28, 25, 5) : p.color(18, 8, 22);
@@ -743,13 +694,11 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
   p.rect(panX, panY, panW, panH, 18);
   p.noStroke();
 
-  // 상단 컬러 띠
   let topCol = winner === 'A' ? COLOR_A : winner === 'B' ? COLOR_B :
                winner === 'draw' ? '#FFD600' : COLOR_ZOMBIE;
   p.fill(topCol);
   p.rect(panX, panY, panW, 55, 18, 18, 0, 0);
 
-  // ── GAME OVER 타이틀
   p.textFont('Nunito');
   p.textStyle(p.BOLD);
   p.fill(255, 255, 255, 220);
@@ -757,20 +706,16 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
   p.textAlign(p.CENTER, p.CENTER);
   p.text('GAME OVER', cx, panY + 20);
 
-  // ── 승리자 텍스트 (크고 굵고 빨간색 계열)
   p.textSize(30);
-  // 그림자
   p.fill(0, 0, 0, 150);
   let winText = winner === 'A' ? '플레이어 A 승리!' :
                 winner === 'B' ? '플레이어 B 승리!' :
                 winner === 'draw' ? '무 승 부 !' : '좀비의 승리...';
   p.text(winText, cx + 2, panY + 42);
-  // 메인 (항상 강한 빨간/흰 대비)
   p.fill(winner === 'draw' ? '#FFD600' : '#FF1744');
   p.text(winText, cx, panY + 40);
   p.textStyle(p.NORMAL);
 
-  // ── 승리자 캐릭터 얼굴 아이콘
   const facePS = 10;
   const faceW = 8 * facePS;
   const faceH = 5 * facePS;
@@ -784,19 +729,16 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
   } else if (winner === 'zombie') {
     _drawPMap(p, _ZFACE, faceX, faceY, facePS, '#2E7D32', '#ccffcc', '#1B5E20', '#e8ffe8', false);
   } else {
-    // draw
     const faceX2 = cx - faceW - 12;
     _drawPMap(p, _PFACE, faceX2, faceY, facePS, '#C62828', '#eeeeee', '#111111', '#ffffff', false);
     _drawPMap(p, _PFACE, cx + 12, faceY, facePS, '#1565C0', '#eeeeee', '#111111', '#ffffff', true);
   }
 
-  // ── 구분선
   const divY = faceY + faceH + 10;
   p.stroke(80); p.strokeWeight(1);
   p.line(panX + 30, divY, panX + panW - 30, divY);
   p.noStroke();
 
-  // ── 영역 통계
   const statsY = divY + 18;
   p.textFont('Nunito');
   p.textStyle(p.BOLD);
@@ -808,7 +750,6 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
     p.text(`🟢  TEAM 영역`, cx - 60, statsY);
     p.fill(255); p.text(`${counts.team} 타일`, cx + 60, statsY);
   } else {
-    // A 영역 바
     const barW = panW - 80;
     const barX = panX + 40;
     const totalTiles = ROWS * COLS;
@@ -821,7 +762,6 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
     const wB = Math.max(4, (counts.B / totalTiles) * barW);
     p.fill(COLOR_B); p.rect(barX + barW - wB, statsY + 22, wB, 14, 0, 7, 7, 0);
 
-    // 바 옆에 라벨 (바 밖에 위아래로)
     p.textSize(10); p.noStroke();
     p.fill(COLOR_A); p.textAlign(p.LEFT, p.CENTER);
     p.text('A  ' + counts.A + '타일', barX, statsY - 8);
@@ -834,7 +774,6 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
     p.text('좀비 점령: ' + counts.Z + '타일 (' + zPct + '%)', cx, statsY + 50);
   }
 
-  // ── 고득점
   p.textStyle(p.NORMAL);
   const scoreY = statsY + 72;
   p.stroke(60); p.strokeWeight(1);
@@ -870,7 +809,6 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
     }
   }
 
-  // ── 다시하기 버튼
   const btnW = 220, btnH = 42;
   const btnX = cx - btnW / 2;
   const btnY2 = panY + panH - 58;
@@ -886,12 +824,11 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
   p.textStyle(p.NORMAL);
 }
 
-// ── 로비 화면
+// ── 로비 화면 (UI 분포 균등 리디자인)
 function drawLobby(p) {
   p.background(10, 10, 15);
   p.noStroke();
 
-  // ── 가장자리 혈흔 (제일 먼저 그려서 뒤에 깔리게)
   _updateDrawBloodDrops(p);
 
   p.textAlign(p.CENTER, p.CENTER);
@@ -899,58 +836,43 @@ function drawLobby(p) {
 
   const cx = CANVAS_W / 2;
 
-  // ─────────────────────────────────────────────
-  // CANVAS_H = 900. 요소별 수직 분배:
-  //  제목        ~Y 75
-  //  부제목      ~Y 122
-  //  제작자      ~Y 144
-  //  캐릭터      Y 175 ~ 346  (ps=19, 9행=171px)
-  //  키캡        Y 356 ~ 404
-  //  시작버튼    Y 420 ~ 476
-  //  게임방법    Y 490 ~ 530
-  //  로그인      Y 550 ~ 630
-  // ─────────────────────────────────────────────
-
-  // ── 제목 (단층 그림자)
+  // 1. 대형 게임 타이틀 영역 (위치: Y 85)
   p.textStyle(p.BOLD);
-  p.textSize(66);
+  p.textSize(64);
   p.fill(12, 55, 14);
-  p.text('좀비 슬라이드 듀오', cx, 77);
+  p.text('좀비 슬라이드 듀오', cx, 87);
   p.fill('#4CAF50');
-  p.text('좀비 슬라이드 듀오', cx, 75);
+  p.text('좀비 슬라이드 듀오', cx, 85);
   p.textStyle(p.NORMAL);
 
-  // ── 부제목
-  p.textSize(13);
-  p.fill(185);
-  p.text('2인 협력  →  배신 영역 점령 게임', cx, 120);
+  // 부제목 (위치: Y 140)
+  p.textSize(14);
+  p.fill(195);
+  p.text('2인 협력  →  배신 영역 점령 게임', cx, 140);
 
-  // ── 제작자
-  p.textSize(10);
-  p.fill(95);
-  p.text('제작자 : 이현서  이유진  전재민', cx, 142);
+  // 제작자 정보 (위치: Y 170)
+  p.textSize(11);
+  p.fill(105);
+  p.text('제작자 : 이현서  이유진  전재민', cx, 170);
 
-  // ── 픽셀 캐릭터 영역
-  const ps    = 19;
+  // 2. 캐릭터 그래픽 및 키보드 매핑 영역을 한데 묶어 중단 배치 (위치: Y 230)
+  const ps    = 18;
   const charW = 8 * ps;
-  const charH = 9 * ps;   // = 171
-  const charTopY = 175;
+  const charH = 9 * ps;   
+  const charTopY = 230;
 
   const axMid = 145;
-  _drawPMap(p, _PMAP, axMid - charW / 2, charTopY, ps,
-    '#C62828', '#eeeeee', '#111111', '#ffffff', false);
+  _drawPMap(p, _PMAP, axMid - charW / 2, charTopY, ps, '#C62828', '#eeeeee', '#111111', '#ffffff', false);
 
   const bxMid = CANVAS_W - 145;
-  _drawPMap(p, _PMAP, bxMid - charW / 2, charTopY, ps,
-    '#1565C0', '#eeeeee', '#111111', '#ffffff', true);
+  _drawPMap(p, _PMAP, bxMid - charW / 2, charTopY, ps, '#1565C0', '#eeeeee', '#111111', '#ffffff', true);
 
   const zps  = 16;
   const zW   = 8 * zps;
   const zTopY = charTopY + (charH - 9 * zps) / 2;
-  _drawPMap(p, _ZMAP, cx - zW / 2, zTopY, zps,
-    '#2E7D32', '#ccffcc', '#1B5E20', '#e8ffe8', false);
+  _drawPMap(p, _ZMAP, cx - zW / 2, zTopY, zps, '#2E7D32', '#ccffcc', '#1B5E20', '#e8ffe8', false);
 
-  // ── PLAYER / ZOMBIE 라벨
+  // 캐릭터 상단 라벨
   const labelY = charTopY - 20;
   p.textStyle(p.BOLD);
   p.textSize(12); p.noStroke();
@@ -959,17 +881,17 @@ function drawLobby(p) {
   p.fill('#2E7D32'); p.text('Z O M B I E', cx, labelY);
   p.textStyle(p.NORMAL);
 
-  // ── VS 텍스트 (선 없음)
+  // VS 라벨
   const vsY = charTopY + charH / 2;
   p.textStyle(p.BOLD);
-  p.textSize(18); p.fill(58);
+  p.textSize(18); p.fill(62);
   p.text('VS', (axMid + cx) / 2, vsY);
   p.text('VS', (bxMid + cx) / 2, vsY);
   p.textStyle(p.NORMAL);
 
-  // ── 키캡
+  // 키캡 매핑 (위치: Y 415)
   const kw = 28, kh = 24, gap = 4;
-  const keyTopY = charTopY + charH + 10;   // ~= 356
+  const keyTopY = charTopY + charH + 20;   
 
   _drawKey(p, 'W', axMid - kw/2,         keyTopY,        kw, kh, COLOR_A);
   _drawKey(p, 'A', axMid - kw*1.5 - gap, keyTopY+kh+gap, kw, kh, COLOR_A);
@@ -981,62 +903,64 @@ function drawLobby(p) {
   _drawKey(p, '↓', bxMid - kw/2,         keyTopY+kh+gap, kw, kh, COLOR_B);
   _drawKey(p, '→', bxMid + kw/2 + gap,   keyTopY+kh+gap, kw, kh, COLOR_B);
 
-  // ── 시작하기 버튼  (~Y 420)
-  const btnY = keyTopY + kh * 2 + gap + 16;
-  const btnW = 380, btnH = 54;
+  // 3. 메인 기능 버튼들을 수직축 아래로 넓게 분포
+  // 시작하기 버튼 (위치: Y 490)
+  const startBtnY = 490;
+  const btnW = 380, btnH = 56;
   const btnX = cx - btnW / 2;
   const blink = Math.floor(p.frameCount / 18) % 2 === 0;
   p.fill(blink ? '#43A047' : '#2E7D32');
   p.stroke('#76FF03'); p.strokeWeight(1.5);
-  p.rect(btnX, btnY, btnW, btnH, 14);
+  p.rect(btnX, startBtnY, btnW, btnH, 14);
   p.noStroke();
   p.textStyle(p.BOLD);
-  p.textSize(21);
+  p.textSize(22);
   p.fill(0, 50, 0);
-  p.text('▶  시작하기  (SPACE)', cx + 1, btnY + btnH / 2 + 1);
+  p.text('▶  시작하기  (SPACE)', cx + 1, startBtnY + btnH / 2 + 1);
   p.fill(255);
-  p.text('▶  시작하기  (SPACE)', cx, btnY + btnH / 2);
+  p.text('▶  시작하기  (SPACE)', cx, startBtnY + btnH / 2);
   p.textStyle(p.NORMAL);
 
-  // ── 게임 방법 버튼  (~Y 490)
-  const htW = 180, htH = 38;
+  // 게임 방법 버튼 (위치: Y 570)
+  const howtoBtnY = startBtnY + 80;
+  const htW = 200, htH = 40;
   const htX = cx - htW / 2;
-  const htY = btnY + btnH + 12;
   const htBlink = Math.floor(p.frameCount / 25) % 2 === 0;
   p.fill(htBlink ? '#1565C0' : '#0D47A1');
   p.stroke('#42A5F5'); p.strokeWeight(1.5);
-  p.rect(htX, htY, htW, htH, 10);
+  p.rect(htX, howtoBtnY, htW, htH, 10);
   p.noStroke();
   p.fill(255);
   p.textStyle(p.BOLD);
-  p.textSize(13);
-  p.text('❓  게임 방법', cx, htY + htH / 2);
+  p.textSize(14);
+  p.text('❓  게임 방법', cx, howtoBtnY + htH / 2);
   p.textStyle(p.NORMAL);
 
-  // ── 로그인/회원가입  (~Y 550)
-  const accountY = htY + htH + 22;
+  // 4. 로그인 / 계정 인포 영역을 하단에 안정감 있게 정착 (위치: Y 660)
+  const accountAreaY = howtoBtnY + 90;
   if (currentUserId) {
-    p.textSize(11); p.fill(115);
-    p.text('로그인 중:', cx, accountY);
-    p.textSize(13); p.fill(220);
-    p.text('👤 ' + currentUserId, cx, accountY + 20);
-    p.textSize(10); p.fill(88);
-    p.text('최고 기록: ' + highScore + ' 타일', cx, accountY + 38);
+    p.textSize(12); p.fill(130);
+    p.text('로그인 중:', cx, accountAreaY);
+    p.textSize(15); p.fill(235);
+    p.text('👤 ' + currentUserId, cx, accountAreaY + 22);
+    p.textSize(11); p.fill(100);
+    p.text('최고 기록: ' + highScore + ' 타일', cx, accountAreaY + 42);
+    
     p.fill(38, 38, 50); p.stroke(68); p.strokeWeight(1);
-    p.rect(cx - 42, accountY + 50, 84, 28, 6);
-    p.noStroke(); p.fill(148); p.textSize(11);
-    p.text('로그아웃', cx, accountY + 64);
+    p.rect(cx - 45, accountAreaY + 54, 90, 30, 6);
+    p.noStroke(); p.fill(160); p.textSize(12);
+    p.text('로그아웃', cx, accountAreaY + 69);
   } else {
     p.fill(28, 28, 40); p.stroke(62); p.strokeWeight(1);
-    p.rect(cx - 92, accountY, 86, 32, 7);
+    p.rect(cx - 94, accountAreaY, 90, 34, 7);
     p.fill(44, 44, 58); p.stroke(80);
-    p.rect(cx + 6, accountY, 86, 32, 7);
+    p.rect(cx + 4, accountAreaY, 90, 34, 7);
     p.noStroke();
-    p.fill(188); p.textSize(12);
-    p.text('로그인', cx - 49, accountY + 16);
-    p.text('회원가입', cx + 49, accountY + 16);
-    p.fill(78); p.textSize(9);
-    p.text('아이디로 최고기록을 저장하세요', cx, accountY + 42);
+    p.fill(200); p.textSize(13);
+    p.text('로그인', cx - 49, accountAreaY + 17);
+    p.text('회원가입', cx + 49, accountAreaY + 17);
+    p.fill(90); p.textSize(10);
+    p.text('아이디로 로그인하여 최고기록을 관리하세요', cx, accountAreaY + 48);
   }
 
   // ── 게임 방법 팝업
@@ -1108,12 +1032,11 @@ function drawLobby(p) {
     p.textStyle(p.NORMAL);
   }
 }
-// ── 혈흔 스플래터 그리기 (정적)
+
 function _updateDrawBloodDrops(p) {
   p.noStroke();
   for (const d of bloodDrops) {
     const r1 = 160, g1 = 0, b1 = 0;
-    // 메인 핏방울
     p.fill(r1, g1, b1, d.alpha);
     if (d.type === 0) {
       p.ellipse(d.x, d.y, d.size, d.size);
@@ -1124,13 +1047,11 @@ function _updateDrawBloodDrops(p) {
       p.ellipse(0, 0, d.size * 1.6, d.size * 0.7);
       p.pop();
     } else {
-      // 방울 무리
       p.ellipse(d.x, d.y, d.size, d.size);
       p.fill(r1, g1, b1, d.alpha * 0.7);
       p.ellipse(d.x + d.size * 0.8, d.y - d.size * 0.4, d.size * 0.5, d.size * 0.5);
       p.ellipse(d.x - d.size * 0.6, d.y + d.size * 0.5, d.size * 0.4, d.size * 0.4);
     }
-    // 흘러내리는 방울들
     for (let i = 0; i < d.drips; i++) {
       const dr = d.dripOffsets[i];
       p.fill(120, 0, 0, d.alpha * 0.5);
