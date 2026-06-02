@@ -669,7 +669,7 @@ function mousePressed() {
 
   if (phase === PHASE_LOBBY) {
     // 레이아웃 수치 (drawLobby와 동일)
-    const ps = 17, charH = 9 * ps, charTopY = 165;
+    const ps = 17, charH = 9 * ps, charTopY = 245;
     const kh = 22, gap = 3;
     const keyTopY = charTopY + charH + 10;
     const startBtnY = keyTopY + kh * 2 + gap + 18;
@@ -910,35 +910,36 @@ function drawLobby(p) {
   p.textSize(60);
   for (let i = 4; i >= 1; i--) {
     p.fill(34, 200, 60, 18 - i * 3);
-    p.text('좀비 슬라이드 듀오', cx, 72 + i);
+    p.text('좀비 슬라이드 듀오', cx, 92 + i);
   }
   p.fill(10, 40, 12);
-  p.text('좀비 슬라이드 듀오', cx + 2, 74);
+  p.text('좀비 슬라이드 듀오', cx + 2, 94);
   p.fill('#55CC60');
-  p.text('좀비 슬라이드 듀오', cx, 72);
+  p.text('좀비 슬라이드 듀오', cx, 92);
   p.textStyle(p.NORMAL);
 
-  // 제목 아래 장식선
+  // 제목 아래 장식선: +20px
   p.stroke('#2E7D32'); p.strokeWeight(1.5);
-  p.line(cx - 180, 103, cx - 10, 103);
-  p.line(cx + 10, 103, cx + 180, 103);
+  p.line(cx - 180, 123, cx - 10, 123);
+  p.line(cx + 10, 123, cx + 180, 123);
   p.noStroke();
   p.fill('#4CAF50'); p.textSize(8);
-  p.text('★', cx, 103);
+  p.text('★', cx, 123);
 
+  // 부제·크레딧: 제목+20, 아래요소+40 = +60px
   p.textSize(13);
   p.fill(160, 200, 160);
-  p.text('2인 협력  →  배신 영역 점령 게임', cx, 120);
+  p.text('2인 협력  →  배신 영역 점령 게임', cx, 180);
 
   p.textSize(10);
   p.fill(80, 110, 80);
-  p.text('제작자 : 이현서  이유진  전재민', cx, 137);
+  p.text('제작자 : 이현서  이유진  전재민', cx, 197);
 
-  // ── 캐릭터 영역 (제목 아래 여백 충분히)
+  // ── 캐릭터 영역: 기존 165 + 80 = 245
   const ps    = 17;
   const charW = 8 * ps;
   const charH = 9 * ps;
-  const charTopY = 165;  // 기존 230 → 165로 조정 (제목이 더 위에 있어서 공간 생김)
+  const charTopY = 245;
 
   const axMid = 140;
   const bxMid = CANVAS_W - 140;
