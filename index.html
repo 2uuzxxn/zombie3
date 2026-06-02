@@ -13,6 +13,7 @@
   </style>
 </head>
 <body>
+  <audio id="bgm" src="전반_브금.mp3" loop></audio>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
   <script src="constants.js"></script>
   <script src="grid.js"></script>
@@ -21,5 +22,17 @@
   <script src="player.js"></script>
   <script src="ui.js"></script>
   <script src="sketch.js"></script>
+  <script>
+    var bgm = document.getElementById('bgm');
+    bgm.volume = 0.55;
+    function startBGM() {
+      bgm.play().then(function() {
+        document.removeEventListener('click', startBGM);
+        document.removeEventListener('keydown', startBGM);
+      }).catch(function() {});
+    }
+    document.addEventListener('click', startBGM);
+    document.addEventListener('keydown', startBGM);
+  </script>
 </body>
 </html>
