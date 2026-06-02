@@ -703,7 +703,9 @@ function mousePressed() {
 
   if (phase === PHASE_END) {
     const cy = CANVAS_H / 2;
-    if (mouseX > cx - 110 && mouseX < cx + 110 && mouseY > cy + 110 && mouseY < cy + 155) {
+    const panY = cy + 50, panH = 220;
+    const btnY2 = panY + panH - 58;
+    if (mouseX > cx - 120 && mouseX < cx + 120 && mouseY > btnY2 && mouseY < btnY2 + 44) {
       playZombieRoar();
       resetGame(); return;
     }
@@ -730,151 +732,180 @@ function drawBetrayalAnnounce(p) {
 function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
   const cx = CANVAS_W / 2, cy = CANVAS_H / 2;
 
-  p.fill(0, 0, 0, 210); p.noStroke(); p.rect(0, 0, CANVAS_W, CANVAS_H);
+  // 승자 색상 정의
+  const winColor   = winner === 'A' ? '#E53935' :
+                     winner === 'B' ? '#1E88E5' :
+                     winner === 'draw' ? '#FFD600' : '#AB47BC';
+  const winColorDk = winner === 'A' ? '#7f0000' :
+                     winner === 'B' ? '#003c8f' :
+                     winner === 'draw' ? '#8a6d00' : '#4a0072';
 
-  const panW = 460, panH = 380;
-  const panX = cx - panW / 2, panY = cy - panH / 2;
+  // ── 전체 배경: 승자 색상으로 물든 어두운 오버레이
+  p.fill(0, 0, 0, 190); p.noStroke(); p.rect(0, 0, CANVAS_W, CANVAS_H);
 
-  p.fill(0, 0, 0, 120); p.noStroke();
-  p.rect(panX + 6, panY + 6, panW, panH, 18);
+  // 승자 색 방사형 글로우 (화면 중앙에서 퍼짐)
+  const pulse = 0.85 + Math.sin(p.frameCount * 0.07) * 0.15;
+  const wc = p.color(winColor);
+  for (let i = 8; i >= 1; i--) {
+    p.fill(p.red(wc), p.green(wc), p.blue(wc), 8 * pulse * i);
+    p.noStroke();
+    p.ellipse(cx, cy - 60, 520 - i * 30, 300 - i * 18);
+  }
 
-  let panelBg = winner === 'A' ? p.color(30, 10, 10) :
-                winner === 'B' ? p.color(10, 15, 30) :
-                winner === 'draw' ? p.color(28, 25, 5) : p.color(18, 8, 22);
-  p.fill(panelBg);
-  p.stroke(winner === 'A' ? '#E53935' : winner === 'B' ? '#1E88E5' :
-           winner === 'draw' ? '#FFD600' : '#AB47BC');
-  p.strokeWeight(3);
-  p.rect(panX, panY, panW, panH, 18);
-  p.noStroke();
-
-  let topCol = winner === 'A' ? COLOR_A : winner === 'B' ? COLOR_B :
-               winner === 'draw' ? '#FFD600' : COLOR_ZOMBIE;
-  p.fill(topCol);
-  p.rect(panX, panY, panW, 55, 18, 18, 0, 0);
-
+  // ── 승자 표시 (초대형, 화면 상단 1/3 장악)
   p.textFont('Nunito');
-  p.textStyle(p.BOLD);
-  p.fill(255, 255, 255, 220);
-  p.textSize(13);
   p.textAlign(p.CENTER, p.CENTER);
-  p.text('GAME OVER', cx, panY + 20);
 
-  p.textSize(30);
-  p.fill(0, 0, 0, 150);
-  let winText = winner === 'A' ? '플레이어 A 승리!' :
-                winner === 'B' ? '플레이어 B 승리!' :
-                winner === 'draw' ? '무 승 부 !' : '좀비의 승리...';
-  p.text(winText, cx + 2, panY + 42);
-  p.fill(winner === 'draw' ? '#FFD600' : '#FF1744');
-  p.text(winText, cx, panY + 40);
+  // GAME OVER 작은 라벨
+  p.textStyle(p.BOLD);
+  p.fill(180, 180, 180, 200);
+  p.textSize(12);
+  p.text('G A M E   O V E R', cx, cy - 175);
+
+  // 승리 문구 — 크고 굵게, 글로우 레이어 4겹
+  let winText = winner === 'A' ? 'PLAYER  A  WIN!' :
+                winner === 'B' ? 'PLAYER  B  WIN!' :
+                winner === 'draw' ? 'D R A W !' : 'ZOMBIE  WIN...';
+  p.textSize(52);
+  for (let g = 5; g >= 1; g--) {
+    p.fill(p.red(wc), p.green(wc), p.blue(wc), 20 * pulse);
+    p.text(winText, cx, cy - 138 + g);
+  }
+  // 그림자
+  p.fill(0, 0, 0, 160);
+  p.text(winText, cx + 3, cy - 135);
+  // 본문
+  p.fill(winColor);
+  p.text(winText, cx, cy - 138);
   p.textStyle(p.NORMAL);
 
-  const facePS = 10;
-  const faceW = 8 * facePS;
-  const faceH = 5 * facePS;
-  const faceX = cx - faceW / 2;
-  const faceY = panY + 65;
+  // ── 캐릭터 픽셀맵 (승자만 크게, 패자는 작고 흐릿하게 양옆에)
+  const fPS = 13, fW = 8 * fPS, fH = 5 * fPS;
+  const faceY = cy - 110;
 
   if (winner === 'A') {
-    _drawPMap(p, _PFACE, faceX, faceY, facePS, '#C62828', '#eeeeee', '#111111', '#ffffff', false);
+    // 승자 A 크게 중앙
+    _drawPMap(p, _PFACE, cx - fW/2, faceY, fPS, '#C62828', '#eeeeee', '#111111', '#ffffff', false);
+    // 패자 B 작고 흐릿하게 우측
+    p.fill(0, 0, 0, 100); p.noStroke();
+    p.rect(cx + fW/2 + 22, faceY - 2, 8*8+4, 5*8+4, 4);
+    _drawPMap(p, _PFACE, cx + fW/2 + 24, faceY, 8, '#444', '#888', '#222', '#666', true);
   } else if (winner === 'B') {
-    _drawPMap(p, _PFACE, faceX, faceY, facePS, '#1565C0', '#eeeeee', '#111111', '#ffffff', true);
+    // 패자 A 작고 흐릿하게 좌측
+    p.fill(0, 0, 0, 100); p.noStroke();
+    p.rect(cx - fW/2 - 8*8 - 28, faceY - 2, 8*8+4, 5*8+4, 4);
+    _drawPMap(p, _PFACE, cx - fW/2 - 8*8 - 26, faceY, 8, '#444', '#888', '#222', '#666', false);
+    // 승자 B 크게 중앙
+    _drawPMap(p, _PFACE, cx - fW/2, faceY, fPS, '#1565C0', '#eeeeee', '#111111', '#ffffff', true);
   } else if (winner === 'zombie') {
-    _drawPMap(p, _ZFACE, faceX, faceY, facePS, '#2E7D32', '#ccffcc', '#1B5E20', '#e8ffe8', false);
+    _drawPMap(p, _ZFACE, cx - fW/2, faceY, fPS, '#2E7D32', '#ccffcc', '#1B5E20', '#e8ffe8', false);
   } else {
-    const faceX2 = cx - faceW - 12;
-    _drawPMap(p, _PFACE, faceX2, faceY, facePS, '#C62828', '#eeeeee', '#111111', '#ffffff', false);
-    _drawPMap(p, _PFACE, cx + 12, faceY, facePS, '#1565C0', '#eeeeee', '#111111', '#ffffff', true);
+    // 무승부: 둘 다 같은 크기
+    const smPS = 10, smW = 8 * smPS;
+    _drawPMap(p, _PFACE, cx - smW - 10, faceY + 10, smPS, '#C62828', '#eeeeee', '#111111', '#ffffff', false);
+    _drawPMap(p, _PFACE, cx + 10, faceY + 10, smPS, '#1565C0', '#eeeeee', '#111111', '#ffffff', true);
   }
 
-  const divY = faceY + faceH + 10;
-  p.stroke(80); p.strokeWeight(1);
-  p.line(panX + 30, divY, panX + panW - 30, divY);
+  // ── 하단 패널 (스탯 + 버튼)
+  const panW = 460, panH = 220;
+  const panX = cx - panW / 2, panY = cy + 50;
+
+  // 패널 그림자
+  p.fill(0, 0, 0, 120); p.noStroke();
+  p.rect(panX + 5, panY + 5, panW, panH, 14);
+  // 패널 본체
+  p.fill(14, 14, 20);
+  p.stroke(winColor); p.strokeWeight(2);
+  p.rect(panX, panY, panW, panH, 14);
   p.noStroke();
 
-  const statsY = divY + 18;
-  p.textFont('Nunito');
-  p.textStyle(p.BOLD);
-  p.textSize(12);
-  p.textAlign(p.CENTER, p.CENTER);
+  // 패널 상단 컬러 띠
+  p.fill(winColor);
+  p.rect(panX, panY, panW, 6, 14, 14, 0, 0);
+
+  // ── 타일 점수 바
+  const statsY = panY + 22;
+  const barW = panW - 80, barX = panX + 40;
+  const totalTiles = ROWS * COLS;
 
   if (!betrayalTriggered && winner === 'zombie') {
-    p.fill(COLOR_TEAM);
-    p.text(`🟢  TEAM 영역`, cx - 60, statsY);
-    p.fill(255); p.text(`${counts.team} 타일`, cx + 60, statsY);
+    p.textStyle(p.BOLD); p.textSize(11); p.textAlign(p.CENTER, p.CENTER);
+    p.fill(COLOR_TEAM); p.text('🟢  TEAM 영역', cx - 60, statsY + 8);
+    p.fill(255); p.text(counts.team + ' 타일', cx + 60, statsY + 8);
+    p.textStyle(p.NORMAL);
   } else {
-    const barW = panW - 80;
-    const barX = panX + 40;
-    const totalTiles = ROWS * COLS;
+    // A 바
+    p.fill(30); p.rect(barX, statsY, barW, 18, 9);
+    const wA = Math.max(6, (counts.A / totalTiles) * barW);
+    p.fill(COLOR_A); p.rect(barX, statsY, wA, 18, 9, 0, 0, 9);
+    // B 바
+    p.fill(30); p.rect(barX, statsY + 26, barW, 18, 9);
+    const wB = Math.max(6, (counts.B / totalTiles) * barW);
+    p.fill(COLOR_B); p.rect(barX + barW - wB, statsY + 26, wB, 18, 0, 9, 9, 0);
 
-    p.fill(40); p.rect(barX, statsY, barW, 14, 7);
-    const wA = Math.max(4, (counts.A / totalTiles) * barW);
-    p.fill(COLOR_A); p.rect(barX, statsY, wA, 14, 7, 0, 0, 7);
-
-    p.fill(40); p.rect(barX, statsY + 22, barW, 14, 7);
-    const wB = Math.max(4, (counts.B / totalTiles) * barW);
-    p.fill(COLOR_B); p.rect(barX + barW - wB, statsY + 22, wB, 14, 0, 7, 7, 0);
-
-    p.textSize(10); p.noStroke();
+    p.textStyle(p.BOLD); p.textSize(11); p.noStroke();
     p.fill(COLOR_A); p.textAlign(p.LEFT, p.CENTER);
-    p.text('A  ' + counts.A + '타일', barX, statsY - 8);
+    p.text('A  ' + counts.A + ' 타일', barX + 6, statsY + 9);
     p.fill(COLOR_B); p.textAlign(p.RIGHT, p.CENTER);
-    p.text(counts.B + '타일  B', barX + barW, statsY + 22 + 14 + 8);
+    p.text(counts.B + ' 타일  B', barX + barW - 6, statsY + 35);
 
-    p.fill(120); p.textAlign(p.CENTER, p.CENTER);
-    p.textSize(10);
+    p.fill(100); p.textAlign(p.CENTER, p.CENTER); p.textSize(10);
     const zPct = Math.round((counts.Z / totalTiles) * 100);
-    p.text('좀비 점령: ' + counts.Z + '타일 (' + zPct + '%)', cx, statsY + 50);
+    p.text('좀비 점령: ' + counts.Z + '타일 (' + zPct + '%)', cx, statsY + 58);
+    p.textStyle(p.NORMAL);
   }
 
-  p.textStyle(p.NORMAL);
-  const scoreY = statsY + 72;
-  p.stroke(60); p.strokeWeight(1);
-  p.line(panX + 30, scoreY - 8, panX + panW - 30, scoreY - 8);
+  // ── 최고 기록
+  const scoreY = panY + 108;
+  p.stroke(40); p.strokeWeight(1);
+  p.line(panX + 24, scoreY - 6, panX + panW - 24, scoreY - 6);
   p.noStroke();
 
-  p.textSize(12); p.textAlign(p.CENTER, p.CENTER);
-  if (currentUserId) {
-    const userBest = accounts[currentUserId] ? accounts[currentUserId].highScore : 0;
-    if (isNewHighScore) {
-      const blink = Math.floor(p.frameCount / 10) % 2 === 0;
-      p.textStyle(p.BOLD);
-      p.fill(blink ? '#FFD600' : '#FF8A00');
-      p.textSize(14); p.text('🔥  최고 기록 경신!  🔥', cx, scoreY + 4);
-      p.textStyle(p.NORMAL);
-      p.fill(220); p.textSize(11);
-      p.text(`${currentUserId}님의 최고 기록: ${userBest} 타일`, cx, scoreY + 24);
+  p.textAlign(p.CENTER, p.CENTER);
+  if (isNewHighScore) {
+    const blink = Math.floor(p.frameCount / 10) % 2 === 0;
+    p.textStyle(p.BOLD); p.textSize(14);
+    p.fill(blink ? '#FFD600' : '#FF8A00');
+    p.text('🔥  최고 기록 경신!  🔥', cx, scoreY + 10);
+    p.textStyle(p.NORMAL); p.fill(200); p.textSize(11);
+    if (currentUserId) {
+      const userBest = accounts[currentUserId] ? accounts[currentUserId].highScore : 0;
+      p.text(currentUserId + '님의 최고 기록: ' + userBest + ' 타일', cx, scoreY + 28);
     } else {
-      const best = Math.max(counts.A, counts.B, counts.team);
-      p.fill(160); p.text(`이번 점수: ${best} 타일`, cx, scoreY + 4);
-      p.fill(120); p.text(`${currentUserId}님의 최고 기록: ${userBest} 타일`, cx, scoreY + 22);
+      p.text('최고 기록: ' + highScore + ' 타일', cx, scoreY + 28);
     }
   } else {
-    if (isNewHighScore) {
-      const blink = Math.floor(p.frameCount / 10) % 2 === 0;
-      p.textStyle(p.BOLD);
-      p.fill(blink ? '#FFD600' : '#FF8A00');
-      p.textSize(14); p.text('🔥  최고 기록 경신!  🔥', cx, scoreY + 4);
-      p.textStyle(p.NORMAL);
-      p.fill(220); p.textSize(11); p.text(`최고 기록: ${highScore} 타일`, cx, scoreY + 24);
+    const best = Math.max(counts.A, counts.B, counts.team);
+    p.fill(130); p.textSize(11);
+    p.text('이번 점수: ' + best + ' 타일', cx, scoreY + 8);
+    if (currentUserId) {
+      const userBest = accounts[currentUserId] ? accounts[currentUserId].highScore : 0;
+      p.fill(90); p.text(currentUserId + '님의 최고 기록: ' + userBest + ' 타일', cx, scoreY + 24);
     } else {
-      p.fill(160); p.textSize(11); p.text(`최고 기록: ${highScore} 타일`, cx, scoreY + 14);
+      p.fill(90); p.text('최고 기록: ' + highScore + ' 타일', cx, scoreY + 24);
     }
   }
 
-  const btnW = 220, btnH = 42;
+  // ── 다시 시작 버튼
+  const btnW = 240, btnH = 44;
   const btnX = cx - btnW / 2;
   const btnY2 = panY + panH - 58;
   const blink2 = Math.floor(p.frameCount / 15) % 2 === 0;
+  if (blink2) {
+    p.fill(67, 160, 71, 50); p.noStroke();
+    p.rect(btnX - 4, btnY2 - 4, btnW + 8, btnH + 8, 16);
+  }
   p.fill(blink2 ? '#43A047' : '#2E7D32');
   p.stroke('#76FF03'); p.strokeWeight(2);
-  p.rect(btnX, btnY2, btnW, btnH, 10);
+  p.rect(btnX, btnY2, btnW, btnH, 12);
   p.noStroke();
-  p.textStyle(p.BOLD);
-  p.fill(0, 40, 0); p.textSize(15);
-  p.text('▶  다시 시작  (SPACE)', cx + 1, btnY2 + btnH / 2 + 1);
-  p.fill(255); p.text('▶  다시 시작  (SPACE)', cx, btnY2 + btnH / 2);
+  p.fill(255, 255, 255, 30);
+  p.rect(btnX + 2, btnY2 + 2, btnW - 4, btnH/2 - 2, 10, 10, 0, 0);
+  p.textStyle(p.BOLD); p.textSize(15);
+  p.fill(0, 50, 0);
+  p.text('▶  다시 시작  (SPACE)', cx + 1, btnY2 + btnH/2 + 1);
+  p.fill(255);
+  p.text('▶  다시 시작  (SPACE)', cx, btnY2 + btnH/2);
   p.textStyle(p.NORMAL);
 }
 
