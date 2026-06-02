@@ -692,10 +692,10 @@ function mousePressed() {
         currentUserId = null; highScore = 0; return;
       }
     } else {
-      if (mouseX > cx - 106 && mouseX < cx - 18 && mouseY > accountAreaY + 18 && mouseY < accountAreaY + 46) {
+      if (mouseX > cx - 92 && mouseX < cx - 6 && mouseY > accountAreaY + 18 && mouseY < accountAreaY + 46) {
         lobbySubState = 'login'; inputBuffer = ''; inputError = ''; return;
       }
-      if (mouseX > cx + 18 && mouseX < cx + 106 && mouseY > accountAreaY + 18 && mouseY < accountAreaY + 46) {
+      if (mouseX > cx + 6 && mouseX < cx + 92 && mouseY > accountAreaY + 18 && mouseY < accountAreaY + 46) {
         lobbySubState = 'register'; inputBuffer = ''; inputError = ''; return;
       }
     }
@@ -918,14 +918,6 @@ function drawLobby(p) {
   p.text('좀비 슬라이드 듀오', cx, 92);
   p.textStyle(p.NORMAL);
 
-  // 제목 아래 장식선: +20px
-  p.stroke('#2E7D32'); p.strokeWeight(1.5);
-  p.line(cx - 180, 123, cx - 10, 123);
-  p.line(cx + 10, 123, cx + 180, 123);
-  p.noStroke();
-  p.fill('#4CAF50'); p.textSize(8);
-  p.text('★', cx, 123);
-
   // 부제·크레딧: 제목+20, 아래요소+40 = +60px
   p.textSize(13);
   p.fill(160, 200, 160);
@@ -963,15 +955,15 @@ function drawLobby(p) {
   const zW   = 8 * zps;
   const zTopY = charTopY + (charH - 9 * zps) / 2 + 4;
 
-  // Zombie 패널 배경
+  // Zombie 패널 배경 - Player A/B와 동일하게 charTopY-28 기준
   p.fill(8, 30, 8, 120);
   p.stroke('#2E7D32'); p.strokeWeight(1);
-  p.rect(cx - zW/2 - 8, zTopY - 24, zW + 16, 9 * zps + 48, 8);
+  p.rect(cx - zW/2 - 8, charTopY - 28, zW + 16, charH + 56, 8);
   p.noStroke();
 
   _drawPMap(p, _ZMAP, cx - zW / 2, zTopY, zps, '#2E7D32', '#ccffcc', '#1B5E20', '#e8ffe8', false);
 
-  // 라벨 (패널 상단)
+  // 라벨 (패널 상단) - 모두 동일한 labelY 사용
   const labelY = charTopY - 14;
   p.textStyle(p.BOLD);
   p.textSize(11); p.noStroke();
@@ -986,7 +978,7 @@ function drawLobby(p) {
   p.rect(bxMid - 38, labelY - 10, 76, 18, 4);
   p.fill(255); p.text('PLAYER  B', bxMid, labelY);
 
-  // Zombie 라벨 배지
+  // Zombie 라벨 배지 - zTopY 기준이 아닌 동일한 labelY 사용
   p.fill('#2E7D32');
   p.rect(cx - 42, labelY - 10, 84, 18, 4);
   p.fill('#ccffcc'); p.text('Z O M B I E', cx, labelY);
@@ -1097,15 +1089,15 @@ function drawLobby(p) {
 
     // 로그인 버튼
     p.fill(28, 28, 42); p.stroke(60); p.strokeWeight(1);
-    p.rect(cx - 106, accountAreaY + 18, 88, 28, 6);
+    p.rect(cx - 92, accountAreaY + 18, 86, 28, 6);
     // 회원가입 버튼
     p.fill(38, 38, 55); p.stroke(75);
-    p.rect(cx + 18, accountAreaY + 18, 88, 28, 6);
+    p.rect(cx + 6, accountAreaY + 18, 86, 28, 6);
     p.noStroke();
     p.fill(190); p.textSize(12);
     p.textStyle(p.BOLD);
-    p.text('로그인', cx - 62, accountAreaY + 32);
-    p.text('회원가입', cx + 62, accountAreaY + 32);
+    p.text('로그인', cx - 49, accountAreaY + 32);
+    p.text('회원가입', cx + 49, accountAreaY + 32);
     p.textStyle(p.NORMAL);
   }
 
@@ -1145,20 +1137,23 @@ function drawLobby(p) {
       ['🩸', '피 :  좀비 가속'],
       ['⚡', '에너지드링크 :  속도 2배 + 강철꼬리'],
     ];
+    const emojiX = px + 26;   // 이모티콘 고정 x
+    const textX  = px + 56;   // 텍스트 시작 x (이모티콘과 완전히 분리)
     for (let i = 0; i < lines.length; i++) {
-      const lx = px + 24, ly = py + 60 + i * 30;
+      const ly = py + 64 + i * 30;
       if (i === 4) {
-        // 아이템 섹션 구분선
         p.stroke(40, 70, 40); p.strokeWeight(1);
-        p.line(px + 16, ly - 8, px + pw - 16, ly - 8);
+        p.line(px + 16, ly - 10, px + pw - 16, ly - 10);
         p.noStroke(); p.fill(60, 100, 60); p.textSize(9); p.textAlign(p.LEFT, p.TOP);
-        p.text('ITEMS', lx, ly - 6);
+        p.text('ITEMS', emojiX, ly - 8);
       }
-      p.textSize(16); p.textAlign(p.LEFT, p.CENTER);
-      p.text(lines[i][0], lx, ly + 6);
+      // 이모티콘
+      p.noStroke(); p.textSize(15); p.textAlign(p.LEFT, p.CENTER);
+      p.fill(255);
+      p.text(lines[i][0], emojiX, ly);
+      // 설명 텍스트
       p.fill(160, 200, 160); p.textSize(11);
-      p.text(lines[i][1], lx + 24, ly + 6);
-      p.fill(160, 200, 160);
+      p.text(lines[i][1], textX, ly);
     }
   }
 
