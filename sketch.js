@@ -695,12 +695,12 @@ function mousePressed() {
 
   if (phase === PHASE_LOBBY) {
     // 레이아웃 수치 (drawLobby와 동일)
-    const ps = 17, charH = 9 * ps, charTopY = 245;
+    const ps = 17, charH = 9 * ps, charTopY = 265;
     const kh = 22, gap = 3;
     const keyTopY = charTopY + charH + 10;
     const startBtnY = keyTopY + kh * 2 + gap + 18;
     const btnH = 52;
-    const howtoBtnY = startBtnY + btnH + 12;
+    const howtoBtnY = startBtnY + btnH + 42;  // 42로 변경
     const htH = 36;
     const accountAreaY = howtoBtnY + htH + 14;
 
@@ -807,26 +807,23 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
 
   // ── 캐릭터 픽셀맵 (승자만 크게, 패자는 작고 흐릿하게 양옆에)
   const fPS = 13, fW = 8 * fPS, fH = 5 * fPS;
-  const faceY = cy - 110;
+  const faceY = cy - 95;
 
   if (winner === 'A') {
-    // 승자 A 크게 중앙
     _drawPMap(p, _PFACE, cx - fW/2, faceY, fPS, '#C62828', '#eeeeee', '#111111', '#ffffff', false);
-    // 패자 B 작고 흐릿하게 우측
     p.fill(0, 0, 0, 100); p.noStroke();
     p.rect(cx + fW/2 + 22, faceY - 2, 8*8+4, 5*8+4, 4);
     _drawPMap(p, _PFACE, cx + fW/2 + 24, faceY, 8, '#444', '#888', '#222', '#666', true);
   } else if (winner === 'B') {
-    // 패자 A 작고 흐릿하게 좌측
     p.fill(0, 0, 0, 100); p.noStroke();
     p.rect(cx - fW/2 - 8*8 - 28, faceY - 2, 8*8+4, 5*8+4, 4);
     _drawPMap(p, _PFACE, cx - fW/2 - 8*8 - 26, faceY, 8, '#444', '#888', '#222', '#666', false);
-    // 승자 B 크게 중앙
     _drawPMap(p, _PFACE, cx - fW/2, faceY, fPS, '#1565C0', '#eeeeee', '#111111', '#ffffff', true);
   } else if (winner === 'zombie') {
-    _drawPMap(p, _ZFACE, cx - fW/2, faceY, fPS, '#2E7D32', '#ccffcc', '#1B5E20', '#e8ffe8', false);
+    // 좀비: 더 크게(fPS+4), 더 아래로
+    const zPS = 17, zFW = 8 * zPS;
+    _drawPMap(p, _ZFACE, cx - zFW/2, faceY - 5, zPS, '#2E7D32', '#ccffcc', '#1B5E20', '#e8ffe8', false);
   } else {
-    // 무승부: 둘 다 같은 크기
     const smPS = 10, smW = 8 * smPS;
     _drawPMap(p, _PFACE, cx - smW - 10, faceY + 10, smPS, '#C62828', '#eeeeee', '#111111', '#ffffff', false);
     _drawPMap(p, _PFACE, cx + 10, faceY + 10, smPS, '#1565C0', '#eeeeee', '#111111', '#ffffff', true);
@@ -951,7 +948,7 @@ function drawLobby(p) {
   // 제목을 완전히 비추는 넓은 글로우 (여러 레이어)
   for (let i = 10; i >= 1; i--) {
     p.fill(34, 180, 60, 7 - Math.floor(i / 2));
-    p.ellipse(CANVAS_W / 2, 80, 820 - i * 30, 260 - i * 14);
+    p.ellipse(CANVAS_W / 2, 100, 820 - i * 30, 260 - i * 14);
   }
 
   _updateDrawBloodDrops(p);
@@ -961,47 +958,38 @@ function drawLobby(p) {
 
   const cx = CANVAS_W / 2;
 
-  // ── 제목 영역 (상단 고정, 더 크게)
-  // 제목 글로우 효과
+  // ── 제목 영역
   p.textStyle(p.BOLD);
   p.textSize(60);
   for (let i = 4; i >= 1; i--) {
     p.fill(34, 200, 60, 18 - i * 3);
-    p.text('좀비 슬라이드 듀오', cx, 92 + i);
+    p.text('좀비 슬라이드 듀오', cx, 112 + i);  // 92 → 112 (+20)
   }
   p.fill(10, 40, 12);
-  p.text('좀비 슬라이드 듀오', cx + 2, 94);
+  p.text('좀비 슬라이드 듀오', cx + 2, 114);
   p.fill('#55CC60');
-  p.text('좀비 슬라이드 듀오', cx, 92);
+  p.text('좀비 슬라이드 듀오', cx, 112);
   p.textStyle(p.NORMAL);
 
-  // 부제·크레딧: 제목+20, 아래요소+40 = +60px
+  // 부제·크레딧 (+20px)
   p.textSize(13);
   p.fill(160, 200, 160);
-  p.text('2인 협력  →  배신 영역 점령 게임', cx, 180);
+  p.text('2인 협력  →  배신 영역 점령 게임', cx, 200);  // 180 → 200
 
-  p.textSize(10);
+  p.textSize(13);  // 10 → 13 (약 1.3배)
   p.fill(80, 110, 80);
-  p.text('제작자 : 이현서  이유진  전재민', cx, 197);
+  p.text('제작자 : 이현서  이유진  전재민', cx, 219);  // 197 → 219
 
-  // ── 캐릭터 영역: 기존 165 + 80 = 245
+  // ── 캐릭터 영역: charTopY +20px
   const ps    = 17;
   const charW = 8 * ps;
   const charH = 9 * ps;
-  const charTopY = 245;
+  const charTopY = 265;  // 245 → 265 (+20)
 
   const axMid = 140;
   const bxMid = CANVAS_W - 140;
 
-  // Player A 패널 배경 (선 없음)
-  p.fill(40, 10, 10, 120);
-  p.noStroke();
-  p.rect(axMid - charW/2 - 8, charTopY - 28, charW + 16, charH + 56, 8);
-
-  // Player B 패널 배경 (선 없음)
-  p.fill(10, 15, 40, 120);
-  p.noStroke();
-  p.rect(bxMid - charW/2 - 8, charTopY - 28, charW + 16, charH + 56, 8);
+  // 패널 배경 없음 (제거됨)
 
   _drawPMap(p, _PMAP, axMid - charW / 2, charTopY, ps, '#C62828', '#eeeeee', '#111111', '#ffffff', false);
   _drawPMap(p, _PMAP, bxMid - charW / 2, charTopY, ps, '#1565C0', '#eeeeee', '#111111', '#ffffff', true);
@@ -1010,29 +998,23 @@ function drawLobby(p) {
   const zW   = 8 * zps;
   const zTopY = charTopY + (charH - 9 * zps) / 2 + 4;
 
-  // Zombie 패널 배경 (선 없음)
-  p.fill(8, 30, 8, 120);
-  p.noStroke();
-  p.rect(cx - zW/2 - 8, charTopY - 28, zW + 16, charH + 56, 8);
+  // 좀비 패널 배경 없음 (제거됨)
 
   _drawPMap(p, _ZMAP, cx - zW / 2, zTopY, zps, '#2E7D32', '#ccffcc', '#1B5E20', '#e8ffe8', false);
 
-  // 라벨 (패널 상단) - 모두 동일한 labelY 사용
+  // 라벨 배지
   const labelY = charTopY - 14;
   p.textStyle(p.BOLD);
   p.textSize(11); p.noStroke();
 
-  // Player A 라벨 배지
   p.fill('#C62828');
   p.rect(axMid - 38, labelY - 10, 76, 18, 4);
   p.fill(255); p.text('PLAYER  A', axMid, labelY);
 
-  // Player B 라벨 배지
   p.fill('#1565C0');
   p.rect(bxMid - 38, labelY - 10, 76, 18, 4);
   p.fill(255); p.text('PLAYER  B', bxMid, labelY);
 
-  // Zombie 라벨 배지 - zTopY 기준이 아닌 동일한 labelY 사용
   p.fill('#2E7D32');
   p.rect(cx - 42, labelY - 10, 84, 18, 4);
   p.fill('#ccffcc'); p.text('Z O M B I E', cx, labelY);
@@ -1042,11 +1024,9 @@ function drawLobby(p) {
   const vsY = charTopY + charH / 2;
   p.textStyle(p.BOLD);
   p.textSize(16);
-  // VS 좌측
   p.fill(0, 0, 0, 140);
   p.ellipse((axMid + cx) / 2, vsY, 34, 34);
   p.fill(80, 80, 80); p.text('VS', (axMid + cx) / 2, vsY);
-  // VS 우측
   p.fill(0, 0, 0, 140);
   p.ellipse((bxMid + cx) / 2, vsY, 34, 34);
   p.fill(80, 80, 80); p.text('VS', (bxMid + cx) / 2, vsY);
@@ -1066,22 +1046,19 @@ function drawLobby(p) {
   _drawKey(p, '↓', bxMid - kw/2,         keyTopY+kh+gap, kw, kh, COLOR_B);
   _drawKey(p, '→', bxMid + kw/2 + gap,   keyTopY+kh+gap, kw, kh, COLOR_B);
 
-  // ── 시작 버튼 (키 아래 충분한 여백)
+  // ── 시작 버튼
   const startBtnY = keyTopY + kh * 2 + gap + 18;
   const btnW = 360, btnH = 52;
   const btnX = cx - btnW / 2;
   const blink = Math.floor(p.frameCount / 16) % 2 === 0;
 
-  // 버튼 글로우
   if (blink) {
     p.fill(67, 160, 71, 40);
     p.rect(btnX - 4, startBtnY - 4, btnW + 8, btnH + 8, 18);
   }
-  // 버튼 본체
   p.fill(blink ? '#43A047' : '#2E7D32');
   p.stroke('#76FF03'); p.strokeWeight(2);
   p.rect(btnX, startBtnY, btnW, btnH, 12);
-  // 버튼 상단 하이라이트
   p.noStroke();
   p.fill(255, 255, 255, 30);
   p.rect(btnX + 2, startBtnY + 2, btnW - 4, btnH / 2 - 2, 10, 10, 0, 0);
@@ -1094,8 +1071,8 @@ function drawLobby(p) {
   p.text('▶  시작하기  (SPACE)', cx, startBtnY + btnH / 2);
   p.textStyle(p.NORMAL);
 
-  // ── 게임 방법 버튼
-  const howtoBtnY = startBtnY + btnH + 12;
+  // ── 게임 방법 버튼 (+30px 추가 간격)
+  const howtoBtnY = startBtnY + btnH + 42;  // 12 → 42
   const htW = 190, htH = 36;
   const htX = cx - htW / 2;
   const htBlink = Math.floor(p.frameCount / 25) % 2 === 0;
@@ -1114,7 +1091,6 @@ function drawLobby(p) {
   // ── 계정 영역
   const accountAreaY = howtoBtnY + htH + 14;
   if (currentUserId) {
-    // 로그인 상태 패널
     p.fill(20, 28, 20, 200);
     p.stroke(50, 80, 50); p.strokeWeight(1);
     p.rect(cx - 110, accountAreaY - 4, 220, 72, 8);
@@ -1133,7 +1109,6 @@ function drawLobby(p) {
     p.noStroke(); p.fill(140); p.textSize(11);
     p.text('로그아웃', cx, accountAreaY + 64);
   } else {
-    // 비로그인 패널
     p.fill(18, 18, 28, 180);
     p.stroke(45, 45, 65); p.strokeWeight(1);
     p.rect(cx - 110, accountAreaY - 4, 220, 58, 8);
@@ -1141,10 +1116,8 @@ function drawLobby(p) {
     p.fill(80); p.textSize(9);
     p.text('아이디로 로그인하여 최고기록을 관리하세요', cx, accountAreaY + 8);
 
-    // 로그인 버튼
     p.fill(28, 28, 42); p.stroke(60); p.strokeWeight(1);
     p.rect(cx - 92, accountAreaY + 18, 86, 28, 6);
-    // 회원가입 버튼
     p.fill(38, 38, 55); p.stroke(75);
     p.rect(cx + 6, accountAreaY + 18, 86, 28, 6);
     p.noStroke();
