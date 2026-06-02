@@ -24,7 +24,7 @@ let isNewHighScore = false;
 // ── 승리 애니메이션 (위에서 아래로 채워지는 스캔라인 방식)
 let fillAnimActive = false;
 let fillAnimRow = 0;
-const FILL_SPEED = 1.5; // 한 프레임에 채워질 행(Row)의 수
+const FILL_SPEED = 1.25; // 한 프레임에 채워질 행(Row)의 수 (1.5 → 1.25, 약 1.2배 느리게)
 let pixelFillColor = '';
 
 // ── 혈흔 파티클 (로비 효과)
@@ -349,10 +349,31 @@ function setup() {
 
 function _initBloodDrops() {
   bloodDrops = [];
-  const margin = 120; 
-  for (let i = 0; i < 35; i++) {
-    bloodDrops.push(_newBloodSplatter(margin));
+  // 가장자리 튀김 (진하고 크게)
+  for (let i = 0; i < 28; i++) {
+    bloodDrops.push(_newBloodSplatter(160));
   }
+  // 화면 전체에 작은 튀김 점들 (가독성 유지하며 분위기)
+  for (let i = 0; i < 22; i++) {
+    bloodDrops.push(_newBloodSplatterFull());
+  }
+}
+
+function _newBloodSplatterFull() {
+  return {
+    x: Math.random() * CANVAS_W,
+    y: Math.random() * CANVAS_H,
+    size: 3 + Math.random() * 9,
+    alpha: 40 + Math.random() * 55,
+    type: Math.floor(Math.random() * 3),
+    angle: Math.random() * Math.PI * 2,
+    drips: Math.floor(Math.random() * 2),
+    dripOffsets: Array.from({length: 3}, () => ({
+      ox: (Math.random() - 0.5) * 22,
+      oy: Math.random() * 28 + 4,
+      size: 2 + Math.random() * 4
+    }))
+  };
 }
 
 function _newBloodSplatter(margin) {
@@ -373,15 +394,15 @@ function _newBloodSplatter(margin) {
   }
   return {
     x, y,
-    size: 6 + Math.random() * 22,
-    alpha: 30 + Math.random() * 60,
+    size: 10 + Math.random() * 32,
+    alpha: 70 + Math.random() * 80,
     type: Math.floor(Math.random() * 3),
     angle: Math.random() * Math.PI * 2,
-    drips: Math.floor(Math.random() * 3),
-    dripOffsets: Array.from({length: 3}, () => ({
-      ox: (Math.random() - 0.5) * 16,
-      oy: Math.random() * 20 + 4,
-      size: 2 + Math.random() * 5
+    drips: Math.floor(Math.random() * 4),
+    dripOffsets: Array.from({length: 4}, () => ({
+      ox: (Math.random() - 0.5) * 28,
+      oy: Math.random() * 30 + 4,
+      size: 3 + Math.random() * 7
     }))
   };
 }
@@ -429,6 +450,11 @@ function draw() {
       _drawFillAnim(this);
       return;
     }
+
+    // 필 애니메이션 완료 후: 승자 색 배경을 유지한 채 결과 화면 표시
+    const col = this.color(pixelFillColor);
+    this.fill(col); this.noStroke();
+    this.rect(0, 0, CANVAS_W, CANVAS_H);
 
     drawResultScreen(this, countTiles(), winner, highScore, isNewHighScore);
     return;
@@ -740,8 +766,8 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
                      winner === 'B' ? '#003c8f' :
                      winner === 'draw' ? '#8a6d00' : '#4a0072';
 
-  // ── 전체 배경: 승자 색상으로 물든 어두운 오버레이
-  p.fill(0, 0, 0, 190); p.noStroke(); p.rect(0, 0, CANVAS_W, CANVAS_H);
+  // 배경은 이미 승자 색으로 채워진 상태 — 어두운 반투명 레이어만 추가
+  p.fill(0, 0, 0, 100); p.noStroke(); p.rect(0, 0, CANVAS_W, CANVAS_H);
 
   // 승자 색 방사형 글로우 (화면 중앙에서 퍼짐)
   const pulse = 0.85 + Math.sin(p.frameCount * 0.07) * 0.15;
@@ -922,10 +948,10 @@ function drawLobby(p) {
   for (let y = 0; y < CANVAS_H; y += 20) { p.line(0, y, CANVAS_W, y); }
   p.noStroke();
 
-  // 상단 녹색 빛 그라데이션 글로우
-  for (let i = 5; i >= 0; i--) {
-    p.fill(34, 180, 60, 6 - i);
-    p.ellipse(CANVAS_W / 2, -40, 700 - i * 60, 200 - i * 20);
+  // 제목을 완전히 비추는 넓은 글로우 (여러 레이어)
+  for (let i = 10; i >= 1; i--) {
+    p.fill(34, 180, 60, 7 - Math.floor(i / 2));
+    p.ellipse(CANVAS_W / 2, 80, 820 - i * 30, 260 - i * 14);
   }
 
   _updateDrawBloodDrops(p);
@@ -967,17 +993,15 @@ function drawLobby(p) {
   const axMid = 140;
   const bxMid = CANVAS_W - 140;
 
-  // Player A 패널 배경
+  // Player A 패널 배경 (선 없음)
   p.fill(40, 10, 10, 120);
-  p.stroke('#C62828'); p.strokeWeight(1);
+  p.noStroke();
   p.rect(axMid - charW/2 - 8, charTopY - 28, charW + 16, charH + 56, 8);
-  p.noStroke();
 
-  // Player B 패널 배경
+  // Player B 패널 배경 (선 없음)
   p.fill(10, 15, 40, 120);
-  p.stroke('#1565C0'); p.strokeWeight(1);
-  p.rect(bxMid - charW/2 - 8, charTopY - 28, charW + 16, charH + 56, 8);
   p.noStroke();
+  p.rect(bxMid - charW/2 - 8, charTopY - 28, charW + 16, charH + 56, 8);
 
   _drawPMap(p, _PMAP, axMid - charW / 2, charTopY, ps, '#C62828', '#eeeeee', '#111111', '#ffffff', false);
   _drawPMap(p, _PMAP, bxMid - charW / 2, charTopY, ps, '#1565C0', '#eeeeee', '#111111', '#ffffff', true);
@@ -986,11 +1010,10 @@ function drawLobby(p) {
   const zW   = 8 * zps;
   const zTopY = charTopY + (charH - 9 * zps) / 2 + 4;
 
-  // Zombie 패널 배경 - Player A/B와 동일하게 charTopY-28 기준
+  // Zombie 패널 배경 (선 없음)
   p.fill(8, 30, 8, 120);
-  p.stroke('#2E7D32'); p.strokeWeight(1);
-  p.rect(cx - zW/2 - 8, charTopY - 28, zW + 16, charH + 56, 8);
   p.noStroke();
+  p.rect(cx - zW/2 - 8, charTopY - 28, zW + 16, charH + 56, 8);
 
   _drawPMap(p, _ZMAP, cx - zW / 2, zTopY, zps, '#2E7D32', '#ccffcc', '#1B5E20', '#e8ffe8', false);
 
@@ -1171,7 +1194,7 @@ function drawLobby(p) {
     const emojiX = px + 26;   // 이모티콘 고정 x
     const textX  = px + 56;   // 텍스트 시작 x (이모티콘과 완전히 분리)
     for (let i = 0; i < lines.length; i++) {
-      const ly = py + 64 + i * 30;
+      const ly = py + 84 + i * 30;  // 기존 64 → 84 (+20px 아래로)
       if (i === 4) {
         p.stroke(40, 70, 40); p.strokeWeight(1);
         p.line(px + 16, ly - 10, px + pw - 16, ly - 10);
