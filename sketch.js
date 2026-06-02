@@ -370,50 +370,10 @@ function setup() {
 
 function _initBloodDrops() {
   bloodDrops = [];
-  // 정해진 위치에 혈흔 배치 (랜덤하지만 고정 seed-like 배분)
-  // 4 모서리 + 각 변에 균형있게
-  const positions = [
-    // 상단 (드립이 아래로)
-    { x: CANVAS_W * 0.12, y: 0,         drip: 'down' },
-    { x: CANVAS_W * 0.38, y: 0,         drip: 'down' },
-    { x: CANVAS_W * 0.65, y: 0,         drip: 'down' },
-    { x: CANVAS_W * 0.88, y: 0,         drip: 'down' },
-    // 하단 (드립이 위로)
-    { x: CANVAS_W * 0.22, y: CANVAS_H,  drip: 'up'   },
-    { x: CANVAS_W * 0.55, y: CANVAS_H,  drip: 'up'   },
-    { x: CANVAS_W * 0.80, y: CANVAS_H,  drip: 'up'   },
-    // 좌측 (드립이 오른쪽으로)
-    { x: 0,               y: CANVAS_H * 0.20, drip: 'right' },
-    { x: 0,               y: CANVAS_H * 0.55, drip: 'right' },
-    { x: 0,               y: CANVAS_H * 0.82, drip: 'right' },
-    // 우측 (드립이 왼쪽으로)
-    { x: CANVAS_W,        y: CANVAS_H * 0.15, drip: 'left' },
-    { x: CANVAS_W,        y: CANVAS_H * 0.45, drip: 'left' },
-    { x: CANVAS_W,        y: CANVAS_H * 0.75, drip: 'left' },
-  ];
-  // 각 위치마다 랜덤 변동 추가
-  const rng = (min, max) => min + Math.random() * (max - min);
-  for (const pos of positions) {
-    const jx = rng(-18, 18), jy = rng(-18, 18);
-    bloodDrops.push({
-      x: pos.x + jx,
-      y: pos.y + jy,
-      size: rng(18, 42),
-      alpha: rng(130, 200),
-      drip: pos.drip,
-      dripLen: rng(30, 90),
-      dripW: rng(3, 7),
-      satellites: Math.floor(rng(2, 6)),
-      satOffsets: Array.from({ length: 6 }, () => ({
-        ox: rng(-36, 36),
-        oy: rng(-36, 36),
-        r:  rng(3, 10),
-      })),
-    });
-  }
 }
 
-function _newBloodSplatterFull() { return null; } // 미사용
+function _newBloodSplatterFull() { return null; }
+function _newBloodSplatter(margin) { return null; }
 
 function _newBloodSplatter(margin) { return null; } // 미사용 (레거시 호환)
 
