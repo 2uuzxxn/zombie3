@@ -668,28 +668,34 @@ function mousePressed() {
   }
 
   if (phase === PHASE_LOBBY) {
-    const startBtnY = 490;
-    const howtoBtnY = startBtnY + 80;
-    const accountAreaY = howtoBtnY + 90;
+    // 레이아웃 수치 (drawLobby와 동일)
+    const ps = 17, charH = 9 * ps, charTopY = 165;
+    const kh = 22, gap = 3;
+    const keyTopY = charTopY + charH + 10;
+    const startBtnY = keyTopY + kh * 2 + gap + 18;
+    const btnH = 52;
+    const howtoBtnY = startBtnY + btnH + 12;
+    const htH = 36;
+    const accountAreaY = howtoBtnY + htH + 14;
 
-    if (mouseX > cx - 190 && mouseX < cx + 190 && mouseY > startBtnY && mouseY < startBtnY + 56) {
+    if (mouseX > cx - 180 && mouseX < cx + 180 && mouseY > startBtnY && mouseY < startBtnY + btnH) {
       playZombieRoar();
       phase = PHASE_COOP; 
       return;
     }
-    if (mouseX > cx - 100 && mouseX < cx + 100 && mouseY > howtoBtnY && mouseY < howtoBtnY + 40) {
+    if (mouseX > cx - 95 && mouseX < cx + 95 && mouseY > howtoBtnY && mouseY < howtoBtnY + htH) {
       showHowto = true; 
       return;
     }
     if (currentUserId) {
-      if (mouseX > cx - 45 && mouseX < cx + 45 && mouseY > accountAreaY + 54 && mouseY < accountAreaY + 84) {
+      if (mouseX > cx - 40 && mouseX < cx + 40 && mouseY > accountAreaY + 52 && mouseY < accountAreaY + 76) {
         currentUserId = null; highScore = 0; return;
       }
     } else {
-      if (mouseX > cx - 94 && mouseX < cx - 4 && mouseY > accountAreaY && mouseY < accountAreaY + 34) {
+      if (mouseX > cx - 106 && mouseX < cx - 18 && mouseY > accountAreaY + 18 && mouseY < accountAreaY + 46) {
         lobbySubState = 'login'; inputBuffer = ''; inputError = ''; return;
       }
-      if (mouseX > cx + 4 && mouseX < cx + 94 && mouseY > accountAreaY && mouseY < accountAreaY + 34) {
+      if (mouseX > cx + 18 && mouseX < cx + 106 && mouseY > accountAreaY + 18 && mouseY < accountAreaY + 46) {
         lobbySubState = 'register'; inputBuffer = ''; inputError = ''; return;
       }
     }
@@ -874,8 +880,22 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
 
 // ── 로비 화면
 function drawLobby(p) {
-  p.background(10, 10, 15);
+  // 배경: 어두운 그리드 패턴
+  p.background(8, 8, 12);
   p.noStroke();
+
+  // 배경 그리드 패턴 (게임 분위기)
+  p.stroke(18, 28, 18, 80);
+  p.strokeWeight(0.5);
+  for (let x = 0; x < CANVAS_W; x += 20) { p.line(x, 0, x, CANVAS_H); }
+  for (let y = 0; y < CANVAS_H; y += 20) { p.line(0, y, CANVAS_W, y); }
+  p.noStroke();
+
+  // 상단 녹색 빛 그라데이션 글로우
+  for (let i = 5; i >= 0; i--) {
+    p.fill(34, 180, 60, 6 - i);
+    p.ellipse(CANVAS_W / 2, -40, 700 - i * 60, 200 - i * 20);
+  }
 
   _updateDrawBloodDrops(p);
 
@@ -884,55 +904,110 @@ function drawLobby(p) {
 
   const cx = CANVAS_W / 2;
 
+  // ── 제목 영역 (상단 고정, 더 크게)
+  // 제목 글로우 효과
   p.textStyle(p.BOLD);
-  p.textSize(64);
-  p.fill(12, 55, 14);
-  p.text('좀비 슬라이드 듀오', cx, 87);
-  p.fill('#4CAF50');
-  p.text('좀비 슬라이드 듀오', cx, 85);
+  p.textSize(60);
+  for (let i = 4; i >= 1; i--) {
+    p.fill(34, 200, 60, 18 - i * 3);
+    p.text('좀비 슬라이드 듀오', cx, 72 + i);
+  }
+  p.fill(10, 40, 12);
+  p.text('좀비 슬라이드 듀오', cx + 2, 74);
+  p.fill('#55CC60');
+  p.text('좀비 슬라이드 듀오', cx, 72);
   p.textStyle(p.NORMAL);
 
-  p.textSize(14);
-  p.fill(195);
-  p.text('2인 협력  →  배신 영역 점령 게임', cx, 140);
+  // 제목 아래 장식선
+  p.stroke('#2E7D32'); p.strokeWeight(1.5);
+  p.line(cx - 180, 103, cx - 10, 103);
+  p.line(cx + 10, 103, cx + 180, 103);
+  p.noStroke();
+  p.fill('#4CAF50'); p.textSize(8);
+  p.text('★', cx, 103);
 
-  p.textSize(11);
-  p.fill(105);
-  p.text('제작자 : 이현서  이유진  전재민', cx, 170);
+  p.textSize(13);
+  p.fill(160, 200, 160);
+  p.text('2인 협력  →  배신 영역 점령 게임', cx, 120);
 
-  const ps    = 18;
+  p.textSize(10);
+  p.fill(80, 110, 80);
+  p.text('제작자 : 이현서  이유진  전재민', cx, 137);
+
+  // ── 캐릭터 영역 (제목 아래 여백 충분히)
+  const ps    = 17;
   const charW = 8 * ps;
-  const charH = 9 * ps;   
-  const charTopY = 230;
+  const charH = 9 * ps;
+  const charTopY = 165;  // 기존 230 → 165로 조정 (제목이 더 위에 있어서 공간 생김)
 
-  const axMid = 145;
+  const axMid = 140;
+  const bxMid = CANVAS_W - 140;
+
+  // Player A 패널 배경
+  p.fill(40, 10, 10, 120);
+  p.stroke('#C62828'); p.strokeWeight(1);
+  p.rect(axMid - charW/2 - 8, charTopY - 28, charW + 16, charH + 56, 8);
+  p.noStroke();
+
+  // Player B 패널 배경
+  p.fill(10, 15, 40, 120);
+  p.stroke('#1565C0'); p.strokeWeight(1);
+  p.rect(bxMid - charW/2 - 8, charTopY - 28, charW + 16, charH + 56, 8);
+  p.noStroke();
+
   _drawPMap(p, _PMAP, axMid - charW / 2, charTopY, ps, '#C62828', '#eeeeee', '#111111', '#ffffff', false);
-
-  const bxMid = CANVAS_W - 145;
   _drawPMap(p, _PMAP, bxMid - charW / 2, charTopY, ps, '#1565C0', '#eeeeee', '#111111', '#ffffff', true);
 
-  const zps  = 16;
+  const zps  = 15;
   const zW   = 8 * zps;
-  const zTopY = charTopY + (charH - 9 * zps) / 2;
+  const zTopY = charTopY + (charH - 9 * zps) / 2 + 4;
+
+  // Zombie 패널 배경
+  p.fill(8, 30, 8, 120);
+  p.stroke('#2E7D32'); p.strokeWeight(1);
+  p.rect(cx - zW/2 - 8, zTopY - 24, zW + 16, 9 * zps + 48, 8);
+  p.noStroke();
+
   _drawPMap(p, _ZMAP, cx - zW / 2, zTopY, zps, '#2E7D32', '#ccffcc', '#1B5E20', '#e8ffe8', false);
 
-  const labelY = charTopY - 20;
+  // 라벨 (패널 상단)
+  const labelY = charTopY - 14;
   p.textStyle(p.BOLD);
-  p.textSize(12); p.noStroke();
-  p.fill(COLOR_A); p.text('PLAYER  A', axMid, labelY);
-  p.fill(COLOR_B); p.text('PLAYER  B', bxMid, labelY);
-  p.fill('#2E7D32'); p.text('Z O M B I E', cx, labelY);
+  p.textSize(11); p.noStroke();
+
+  // Player A 라벨 배지
+  p.fill('#C62828');
+  p.rect(axMid - 38, labelY - 10, 76, 18, 4);
+  p.fill(255); p.text('PLAYER  A', axMid, labelY);
+
+  // Player B 라벨 배지
+  p.fill('#1565C0');
+  p.rect(bxMid - 38, labelY - 10, 76, 18, 4);
+  p.fill(255); p.text('PLAYER  B', bxMid, labelY);
+
+  // Zombie 라벨 배지
+  p.fill('#2E7D32');
+  p.rect(cx - 42, labelY - 10, 84, 18, 4);
+  p.fill('#ccffcc'); p.text('Z O M B I E', cx, labelY);
   p.textStyle(p.NORMAL);
 
+  // VS 텍스트
   const vsY = charTopY + charH / 2;
   p.textStyle(p.BOLD);
-  p.textSize(18); p.fill(62);
-  p.text('VS', (axMid + cx) / 2, vsY);
-  p.text('VS', (bxMid + cx) / 2, vsY);
+  p.textSize(16);
+  // VS 좌측
+  p.fill(0, 0, 0, 140);
+  p.ellipse((axMid + cx) / 2, vsY, 34, 34);
+  p.fill(80, 80, 80); p.text('VS', (axMid + cx) / 2, vsY);
+  // VS 우측
+  p.fill(0, 0, 0, 140);
+  p.ellipse((bxMid + cx) / 2, vsY, 34, 34);
+  p.fill(80, 80, 80); p.text('VS', (bxMid + cx) / 2, vsY);
   p.textStyle(p.NORMAL);
 
-  const kw = 28, kh = 24, gap = 4;
-  const keyTopY = charTopY + charH + 20;   
+  // ── 키 안내
+  const kw = 26, kh = 22, gap = 3;
+  const keyTopY = charTopY + charH + 10;
 
   _drawKey(p, 'W', axMid - kw/2,         keyTopY,        kw, kh, COLOR_A);
   _drawKey(p, 'A', axMid - kw*1.5 - gap, keyTopY+kh+gap, kw, kh, COLOR_A);
@@ -944,126 +1019,198 @@ function drawLobby(p) {
   _drawKey(p, '↓', bxMid - kw/2,         keyTopY+kh+gap, kw, kh, COLOR_B);
   _drawKey(p, '→', bxMid + kw/2 + gap,   keyTopY+kh+gap, kw, kh, COLOR_B);
 
-  const startBtnY = 490;
-  const btnW = 380, btnH = 56;
+  // ── 시작 버튼 (키 아래 충분한 여백)
+  const startBtnY = keyTopY + kh * 2 + gap + 18;
+  const btnW = 360, btnH = 52;
   const btnX = cx - btnW / 2;
-  const blink = Math.floor(p.frameCount / 18) % 2 === 0;
+  const blink = Math.floor(p.frameCount / 16) % 2 === 0;
+
+  // 버튼 글로우
+  if (blink) {
+    p.fill(67, 160, 71, 40);
+    p.rect(btnX - 4, startBtnY - 4, btnW + 8, btnH + 8, 18);
+  }
+  // 버튼 본체
   p.fill(blink ? '#43A047' : '#2E7D32');
-  p.stroke('#76FF03'); p.strokeWeight(1.5);
-  p.rect(btnX, startBtnY, btnW, btnH, 14);
+  p.stroke('#76FF03'); p.strokeWeight(2);
+  p.rect(btnX, startBtnY, btnW, btnH, 12);
+  // 버튼 상단 하이라이트
+  p.noStroke();
+  p.fill(255, 255, 255, 30);
+  p.rect(btnX + 2, startBtnY + 2, btnW - 4, btnH / 2 - 2, 10, 10, 0, 0);
   p.noStroke();
   p.textStyle(p.BOLD);
-  p.textSize(22);
-  p.fill(0, 50, 0);
+  p.textSize(20);
+  p.fill(0, 60, 0);
   p.text('▶  시작하기  (SPACE)', cx + 1, startBtnY + btnH / 2 + 1);
   p.fill(255);
   p.text('▶  시작하기  (SPACE)', cx, startBtnY + btnH / 2);
   p.textStyle(p.NORMAL);
 
-  const howtoBtnY = startBtnY + 80;
-  const htW = 200, htH = 40;
+  // ── 게임 방법 버튼
+  const howtoBtnY = startBtnY + btnH + 12;
+  const htW = 190, htH = 36;
   const htX = cx - htW / 2;
   const htBlink = Math.floor(p.frameCount / 25) % 2 === 0;
   p.fill(htBlink ? '#1565C0' : '#0D47A1');
   p.stroke('#42A5F5'); p.strokeWeight(1.5);
-  p.rect(htX, howtoBtnY, htW, htH, 10);
+  p.rect(htX, howtoBtnY, htW, htH, 8);
   p.noStroke();
+  p.fill(255, 255, 255, 25);
+  p.rect(htX + 2, howtoBtnY + 2, htW - 4, htH / 2 - 2, 6, 6, 0, 0);
   p.fill(255);
   p.textStyle(p.BOLD);
-  p.textSize(14);
+  p.textSize(13);
   p.text('❓  게임 방법', cx, howtoBtnY + htH / 2);
   p.textStyle(p.NORMAL);
 
-  const accountAreaY = howtoBtnY + 90;
+  // ── 계정 영역
+  const accountAreaY = howtoBtnY + htH + 14;
   if (currentUserId) {
-    p.textSize(12); p.fill(130);
-    p.text('로그인 중:', cx, accountAreaY);
-    p.textSize(15); p.fill(235);
-    p.text('👤 ' + currentUserId, cx, accountAreaY + 22);
-    p.textSize(11); p.fill(100);
-    p.text('최고 기록: ' + highScore + ' 타일', cx, accountAreaY + 42);
-    
-    p.fill(38, 38, 50); p.stroke(68); p.strokeWeight(1);
-    p.rect(cx - 45, accountAreaY + 54, 90, 30, 6);
-    p.noStroke(); p.fill(160); p.textSize(12);
-    p.text('로그아웃', cx, accountAreaY + 69);
-  } else {
-    p.fill(28, 28, 40); p.stroke(62); p.strokeWeight(1);
-    p.rect(cx - 94, accountAreaY, 90, 34, 7);
-    p.fill(44, 44, 58); p.stroke(80);
-    p.rect(cx + 4, accountAreaY, 90, 34, 7);
+    // 로그인 상태 패널
+    p.fill(20, 28, 20, 200);
+    p.stroke(50, 80, 50); p.strokeWeight(1);
+    p.rect(cx - 110, accountAreaY - 4, 220, 72, 8);
     p.noStroke();
-    p.fill(200); p.textSize(13);
-    p.text('로그인', cx - 49, accountAreaY + 17);
-    p.text('회원가입', cx + 49, accountAreaY + 17);
-    p.fill(90); p.textSize(10);
-    p.text('아이디로 로그인하여 최고기록을 관리하세요', cx, accountAreaY + 48);
+    p.textSize(10); p.fill(100, 150, 100);
+    p.text('로그인 중', cx, accountAreaY + 10);
+    p.textSize(14); p.fill(220, 255, 220);
+    p.textStyle(p.BOLD);
+    p.text('👤 ' + currentUserId, cx, accountAreaY + 28);
+    p.textStyle(p.NORMAL);
+    p.textSize(10); p.fill(100, 130, 100);
+    p.text('최고 기록: ' + highScore + ' 타일', cx, accountAreaY + 44);
+
+    p.fill(35, 35, 48); p.stroke(65); p.strokeWeight(1);
+    p.rect(cx - 40, accountAreaY + 52, 80, 24, 5);
+    p.noStroke(); p.fill(140); p.textSize(11);
+    p.text('로그아웃', cx, accountAreaY + 64);
+  } else {
+    // 비로그인 패널
+    p.fill(18, 18, 28, 180);
+    p.stroke(45, 45, 65); p.strokeWeight(1);
+    p.rect(cx - 110, accountAreaY - 4, 220, 58, 8);
+    p.noStroke();
+    p.fill(80); p.textSize(9);
+    p.text('아이디로 로그인하여 최고기록을 관리하세요', cx, accountAreaY + 8);
+
+    // 로그인 버튼
+    p.fill(28, 28, 42); p.stroke(60); p.strokeWeight(1);
+    p.rect(cx - 106, accountAreaY + 18, 88, 28, 6);
+    // 회원가입 버튼
+    p.fill(38, 38, 55); p.stroke(75);
+    p.rect(cx + 18, accountAreaY + 18, 88, 28, 6);
+    p.noStroke();
+    p.fill(190); p.textSize(12);
+    p.textStyle(p.BOLD);
+    p.text('로그인', cx - 62, accountAreaY + 32);
+    p.text('회원가입', cx + 62, accountAreaY + 32);
+    p.textStyle(p.NORMAL);
   }
 
+  // ── 게임 방법 팝업
   if (showHowto) {
-    p.fill(0, 0, 0, 190); p.noStroke(); p.rect(0, 0, CANVAS_W, CANVAS_H);
-    const pw = 390, ph = 280;
+    p.fill(0, 0, 0, 200); p.noStroke(); p.rect(0, 0, CANVAS_W, CANVAS_H);
+    const pw = 400, ph = 300;
     const px = cx - pw / 2;
     const py = CANVAS_H / 2 - ph / 2;
-    p.fill(16, 16, 24); p.stroke(70); p.strokeWeight(1);
-    p.rect(px, py, pw, ph, 12); p.noStroke();
+
+    // 팝업 그림자
+    p.fill(0, 0, 0, 100); p.rect(px + 8, py + 8, pw, ph, 14);
+    // 팝업 본체
+    p.fill(12, 18, 12);
+    p.stroke('#2E7D32'); p.strokeWeight(2);
+    p.rect(px, py, pw, ph, 14);
+    // 팝업 상단 헤더
+    p.fill('#1B5E20');
+    p.rect(px, py, pw, 44, 14, 14, 0, 0);
+    p.noStroke();
     p.textStyle(p.BOLD);
-    p.fill('#4CAF50'); p.textSize(14); p.textAlign(p.LEFT, p.TOP);
-    p.text('[ 게임 방법 ]', px + 22, py + 20);
+    p.fill('#A5D6A7'); p.textSize(14); p.textAlign(p.LEFT, p.CENTER);
+    p.text('📖  게임 방법', px + 20, py + 22);
     p.textStyle(p.NORMAL);
-    p.fill(90); p.textSize(16); p.textAlign(p.RIGHT, p.TOP);
-    p.text('✕', px + pw - 16, py + 14);
-    p.fill(145); p.textSize(11); p.textAlign(p.LEFT, p.TOP);
+    // 닫기 버튼
+    p.fill(80, 20, 20); p.stroke('#E53935'); p.strokeWeight(1);
+    p.rect(px + pw - 36, py + 8, 28, 28, 6);
+    p.noStroke(); p.fill(255); p.textSize(13); p.textAlign(p.CENTER, p.CENTER);
+    p.text('✕', px + pw - 22, py + 22);
+
     const lines = [
-      '⏱  협력 30초  →  배신 30초',
-      '🐾  꼬리를 뻗다 자기 땅으로 돌아오면 영역 확보',
-      '💀  상대 꼬리를 끊으면 사망',
-      '      머리끼리 부딪히면 밀려남',
-      '🧟  좀비 꼬리를 밟으면 좀비 사망',
-      '',
-      '💊  약 :  보너스 땅 획득',
-      '🩸  피 :  좀비 가속',
-      '⚡  에너지드링크 :  속도 2배 + 강철꼬리',
+      ['⏱', '협력 30초  →  배신 30초'],
+      ['🐾', '꼬리를 뻗다 자기 땅으로 돌아오면 영역 확보'],
+      ['💀', '상대 꼬리를 끊으면 사망'],
+      ['🧟', '좀비 꼬리를 밟으면 좀비 사망'],
+      ['💊', '약 :  보너스 땅 획득'],
+      ['🩸', '피 :  좀비 가속'],
+      ['⚡', '에너지드링크 :  속도 2배 + 강철꼬리'],
     ];
     for (let i = 0; i < lines.length; i++) {
-      p.text(lines[i], px + 22, py + 54 + i * 21);
+      const lx = px + 24, ly = py + 60 + i * 30;
+      if (i === 4) {
+        // 아이템 섹션 구분선
+        p.stroke(40, 70, 40); p.strokeWeight(1);
+        p.line(px + 16, ly - 8, px + pw - 16, ly - 8);
+        p.noStroke(); p.fill(60, 100, 60); p.textSize(9); p.textAlign(p.LEFT, p.TOP);
+        p.text('ITEMS', lx, ly - 6);
+      }
+      p.textSize(16); p.textAlign(p.LEFT, p.CENTER);
+      p.text(lines[i][0], lx, ly + 6);
+      p.fill(160, 200, 160); p.textSize(11);
+      p.text(lines[i][1], lx + 24, ly + 6);
+      p.fill(160, 200, 160);
     }
   }
 
+  // ── 로그인/회원가입 팝업
   if (lobbySubState === 'login' || lobbySubState === 'register') {
-    p.fill(0, 0, 0, 200); p.noStroke(); p.rect(0, 0, CANVAS_W, CANVAS_H);
-    const pw = 340, ph = 200;
+    p.fill(0, 0, 0, 210); p.noStroke(); p.rect(0, 0, CANVAS_W, CANVAS_H);
+    const pw = 340, ph = 210;
     const px = cx - pw / 2;
     const py = CANVAS_H / 2 - ph / 2;
-    p.fill(16, 16, 26); p.stroke(80); p.strokeWeight(1);
-    p.rect(px, py, pw, ph, 12); p.noStroke();
+
+    // 그림자
+    p.fill(0, 0, 0, 100); p.rect(px + 6, py + 6, pw, ph, 14);
+    // 팝업 본체
+    p.fill(14, 14, 22);
+    const popColor = lobbySubState === 'login' ? '#1565C0' : '#4CAF50';
+    p.stroke(popColor); p.strokeWeight(2);
+    p.rect(px, py, pw, ph, 14);
+    // 헤더
+    p.fill(lobbySubState === 'login' ? '#0D47A1' : '#1B5E20');
+    p.rect(px, py, pw, 44, 14, 14, 0, 0);
+    p.noStroke();
     p.textStyle(p.BOLD);
-    p.fill(255); p.textSize(15); p.textAlign(p.CENTER, p.TOP);
+    p.fill(240); p.textSize(14); p.textAlign(p.CENTER, p.CENTER);
     const popTitle = lobbySubState === 'login' ? '🔑  로그인' : '📝  회원가입';
     p.text(popTitle, cx, py + 22);
     p.textStyle(p.NORMAL);
-    p.fill(90); p.textSize(16); p.textAlign(p.RIGHT, p.TOP);
-    p.text('✕', px + pw - 16, py + 14);
-    p.fill(130); p.textSize(11); p.textAlign(p.CENTER, p.TOP);
+    // 닫기
+    p.fill(50, 20, 20); p.stroke('#E53935'); p.strokeWeight(1);
+    p.rect(px + pw - 36, py + 8, 28, 28, 6);
+    p.noStroke(); p.fill(255); p.textSize(13); p.textAlign(p.CENTER, p.CENTER);
+    p.text('✕', px + pw - 22, py + 22);
+
+    p.fill(110); p.textSize(11); p.textAlign(p.CENTER, p.TOP);
     const desc = lobbySubState === 'login' ? '아이디를 입력하세요 (최대 16자)' : '새 아이디를 입력하세요 (최대 16자)';
-    p.text(desc, cx, py + 52);
-    const ibX = px + 20, ibY = py + 76, ibW = pw - 40, ibH = 36;
-    p.fill(25, 25, 38); p.stroke(100); p.strokeWeight(1.5);
+    p.text(desc, cx, py + 54);
+    const ibX = px + 20, ibY = py + 78, ibW = pw - 40, ibH = 36;
+    p.fill(20, 20, 32); p.stroke(90); p.strokeWeight(1.5);
     p.rect(ibX, ibY, ibW, ibH, 6);
     p.noStroke();
     const cursor = Math.floor(p.frameCount / 15) % 2 === 0 ? '|' : '';
-    p.fill(230); p.textSize(14); p.textAlign(p.LEFT, p.CENTER);
+    p.fill(220); p.textSize(14); p.textAlign(p.LEFT, p.CENTER);
     p.text(inputBuffer + cursor, ibX + 10, ibY + ibH / 2);
     if (inputError) {
       p.fill('#FF5252'); p.textSize(11); p.textAlign(p.CENTER, p.TOP);
-      p.text(inputError, cx, py + 120);
+      p.text(inputError, cx, py + 122);
     }
-    const popBtnY = py + ph - 50;
-    p.fill('#2E7D32'); p.stroke('#4CAF50'); p.strokeWeight(1);
-    p.rect(cx - 70, popBtnY, 140, 34, 8);
+    const popBtnY = py + ph - 54;
+    p.fill(lobbySubState === 'login' ? '#1565C0' : '#2E7D32');
+    p.stroke(lobbySubState === 'login' ? '#42A5F5' : '#4CAF50'); p.strokeWeight(1);
+    p.rect(cx - 70, popBtnY, 140, 36, 8);
     p.noStroke(); p.textStyle(p.BOLD);
     p.fill(255); p.textSize(13); p.textAlign(p.CENTER, p.CENTER);
-    p.text('확인 (Enter)', cx, popBtnY + 17);
+    p.text('확인 (Enter)', cx, popBtnY + 18);
     p.textStyle(p.NORMAL);
   }
 }
