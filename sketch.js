@@ -339,73 +339,83 @@ function _drawKey(p, label, x, y, w, h, col) {
   p.text(label, x + w / 2, y + h / 2);
 }
 
+// ── 브금 (로비 BGM)
+let bgmAudio = null;
+
+function _initBGM() {
+  bgmAudio = new Audio('전반_브금.mp3');
+  bgmAudio.loop = true;
+  bgmAudio.volume = 0.55;
+}
+
+function _playBGM() {
+  if (!bgmAudio) return;
+  if (bgmAudio.paused) bgmAudio.play().catch(() => {});
+}
+
+function _stopBGM() {
+  if (!bgmAudio) return;
+  bgmAudio.pause();
+  bgmAudio.currentTime = 0;
+}
+
 function setup() {
   createCanvas(CANVAS_W, CANVAS_H);
   frameRate(FRAME_RATE);
   textFont('Nunito');
   resetGame();
   _initBloodDrops();
+  _initBGM();
 }
 
 function _initBloodDrops() {
   bloodDrops = [];
-  // 가장자리 튀김 (진하고 크게)
-  for (let i = 0; i < 28; i++) {
-    bloodDrops.push(_newBloodSplatter(160));
-  }
-  // 화면 전체에 작은 튀김 점들 (가독성 유지하며 분위기)
-  for (let i = 0; i < 22; i++) {
-    bloodDrops.push(_newBloodSplatterFull());
+  // 정해진 위치에 혈흔 배치 (랜덤하지만 고정 seed-like 배분)
+  // 4 모서리 + 각 변에 균형있게
+  const positions = [
+    // 상단 (드립이 아래로)
+    { x: CANVAS_W * 0.12, y: 0,         drip: 'down' },
+    { x: CANVAS_W * 0.38, y: 0,         drip: 'down' },
+    { x: CANVAS_W * 0.65, y: 0,         drip: 'down' },
+    { x: CANVAS_W * 0.88, y: 0,         drip: 'down' },
+    // 하단 (드립이 위로)
+    { x: CANVAS_W * 0.22, y: CANVAS_H,  drip: 'up'   },
+    { x: CANVAS_W * 0.55, y: CANVAS_H,  drip: 'up'   },
+    { x: CANVAS_W * 0.80, y: CANVAS_H,  drip: 'up'   },
+    // 좌측 (드립이 오른쪽으로)
+    { x: 0,               y: CANVAS_H * 0.20, drip: 'right' },
+    { x: 0,               y: CANVAS_H * 0.55, drip: 'right' },
+    { x: 0,               y: CANVAS_H * 0.82, drip: 'right' },
+    // 우측 (드립이 왼쪽으로)
+    { x: CANVAS_W,        y: CANVAS_H * 0.15, drip: 'left' },
+    { x: CANVAS_W,        y: CANVAS_H * 0.45, drip: 'left' },
+    { x: CANVAS_W,        y: CANVAS_H * 0.75, drip: 'left' },
+  ];
+  // 각 위치마다 랜덤 변동 추가
+  const rng = (min, max) => min + Math.random() * (max - min);
+  for (const pos of positions) {
+    const jx = rng(-18, 18), jy = rng(-18, 18);
+    bloodDrops.push({
+      x: pos.x + jx,
+      y: pos.y + jy,
+      size: rng(18, 42),
+      alpha: rng(130, 200),
+      drip: pos.drip,
+      dripLen: rng(30, 90),
+      dripW: rng(3, 7),
+      satellites: Math.floor(rng(2, 6)),
+      satOffsets: Array.from({ length: 6 }, () => ({
+        ox: rng(-36, 36),
+        oy: rng(-36, 36),
+        r:  rng(3, 10),
+      })),
+    });
   }
 }
 
-function _newBloodSplatterFull() {
-  return {
-    x: Math.random() * CANVAS_W,
-    y: Math.random() * CANVAS_H,
-    size: 3 + Math.random() * 9,
-    alpha: 40 + Math.random() * 55,
-    type: Math.floor(Math.random() * 3),
-    angle: Math.random() * Math.PI * 2,
-    drips: Math.floor(Math.random() * 2),
-    dripOffsets: Array.from({length: 3}, () => ({
-      ox: (Math.random() - 0.5) * 22,
-      oy: Math.random() * 28 + 4,
-      size: 2 + Math.random() * 4
-    }))
-  };
-}
+function _newBloodSplatterFull() { return null; } // 미사용
 
-function _newBloodSplatter(margin) {
-  const side = Math.floor(Math.random() * 4);
-  let x, y;
-  if (side === 0) {        
-    x = Math.random() * CANVAS_W;
-    y = Math.random() * margin;
-  } else if (side === 1) { 
-    x = Math.random() * CANVAS_W;
-    y = CANVAS_H - Math.random() * margin;
-  } else if (side === 2) { 
-    x = Math.random() * margin;
-    y = Math.random() * CANVAS_H;
-  } else {                 
-    x = CANVAS_W - Math.random() * margin;
-    y = Math.random() * CANVAS_H;
-  }
-  return {
-    x, y,
-    size: 10 + Math.random() * 32,
-    alpha: 70 + Math.random() * 80,
-    type: Math.floor(Math.random() * 3),
-    angle: Math.random() * Math.PI * 2,
-    drips: Math.floor(Math.random() * 4),
-    dripOffsets: Array.from({length: 4}, () => ({
-      ox: (Math.random() - 0.5) * 28,
-      oy: Math.random() * 30 + 4,
-      size: 3 + Math.random() * 7
-    }))
-  };
-}
+function _newBloodSplatter(margin) { return null; } // 미사용 (레거시 호환)
 
 function resetGame() {
   initGrid();
@@ -428,11 +438,16 @@ function resetGame() {
   inputBuffer = '';
   inputError = '';
   ambientTimer = 0;
+  // 로비 돌아오면 BGM 재개
+  if (bgmAudio) { bgmAudio.currentTime = 0; bgmAudio.play().catch(() => {}); }
 }
 
 function draw() {
   background(COLOR_EMPTY);
-  if (phase === PHASE_LOBBY) { drawLobby(this); return; }
+  if (phase === PHASE_LOBBY) { _playBGM(); drawLobby(this); return; }
+
+  // 게임 시작되면 BGM 정지
+  _stopBGM();
 
   if (phase !== PHASE_END) {
     ambientTimer++;
@@ -694,13 +709,12 @@ function mousePressed() {
   }
 
   if (phase === PHASE_LOBBY) {
-    // 레이아웃 수치 (drawLobby와 동일)
-    const ps = 17, charH = 9 * ps, charTopY = 265;
+    const ps = 17, charH = 9 * ps, charTopY = 272;
     const kh = 22, gap = 3;
     const keyTopY = charTopY + charH + 10;
-    const startBtnY = keyTopY + kh * 2 + gap + 18;
+    const startBtnY = keyTopY + kh * 2 + gap + 21;
     const btnH = 52;
-    const howtoBtnY = startBtnY + btnH + 42;  // 42로 변경
+    const howtoBtnY = startBtnY + btnH + 45;
     const htH = 36;
     const accountAreaY = howtoBtnY + htH + 14;
 
@@ -811,13 +825,7 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
 
   if (winner === 'A') {
     _drawPMap(p, _PFACE, cx - fW/2, faceY, fPS, '#C62828', '#eeeeee', '#111111', '#ffffff', false);
-    p.fill(0, 0, 0, 100); p.noStroke();
-    p.rect(cx + fW/2 + 22, faceY - 2, 8*8+4, 5*8+4, 4);
-    _drawPMap(p, _PFACE, cx + fW/2 + 24, faceY, 8, '#444', '#888', '#222', '#666', true);
   } else if (winner === 'B') {
-    p.fill(0, 0, 0, 100); p.noStroke();
-    p.rect(cx - fW/2 - 8*8 - 28, faceY - 2, 8*8+4, 5*8+4, 4);
-    _drawPMap(p, _PFACE, cx - fW/2 - 8*8 - 26, faceY, 8, '#444', '#888', '#222', '#666', false);
     _drawPMap(p, _PFACE, cx - fW/2, faceY, fPS, '#1565C0', '#eeeeee', '#111111', '#ffffff', true);
   } else if (winner === 'zombie') {
     // 좀비: 더 크게(fPS+4), 더 아래로
@@ -945,10 +953,12 @@ function drawLobby(p) {
   for (let y = 0; y < CANVAS_H; y += 20) { p.line(0, y, CANVAS_W, y); }
   p.noStroke();
 
-  // 제목을 완전히 비추는 넓은 글로우 (여러 레이어)
-  for (let i = 10; i >= 1; i--) {
-    p.fill(34, 180, 60, 7 - Math.floor(i / 2));
-    p.ellipse(CANVAS_W / 2, 100, 820 - i * 30, 260 - i * 14);
+  // 제목 위 빛줄기 (타원 없애고 얇은 빔 느낌만)
+  p.noStroke();
+  for (let i = 0; i < 6; i++) {
+    const alpha = 12 - i * 1.5;
+    p.fill(34, 200, 60, alpha);
+    p.rect(0, 0, CANVAS_W, 30 + i * 22);
   }
 
   _updateDrawBloodDrops(p);
@@ -963,33 +973,31 @@ function drawLobby(p) {
   p.textSize(60);
   for (let i = 4; i >= 1; i--) {
     p.fill(34, 200, 60, 18 - i * 3);
-    p.text('좀비 슬라이드 듀오', cx, 112 + i);  // 92 → 112 (+20)
+    p.text('좀비 슬라이드 듀오', cx, 119 + i);  // 112 → 119 (+7)
   }
   p.fill(10, 40, 12);
-  p.text('좀비 슬라이드 듀오', cx + 2, 114);
+  p.text('좀비 슬라이드 듀오', cx + 2, 121);
   p.fill('#55CC60');
-  p.text('좀비 슬라이드 듀오', cx, 112);
+  p.text('좀비 슬라이드 듀오', cx, 119);
   p.textStyle(p.NORMAL);
 
-  // 부제·크레딧 (+20px)
+  // 부제·크레딧 (+7px)
   p.textSize(13);
   p.fill(160, 200, 160);
-  p.text('2인 협력  →  배신 영역 점령 게임', cx, 200);  // 180 → 200
+  p.text('2인 협력  →  배신 영역 점령 게임', cx, 207);  // 200 → 207
 
-  p.textSize(13);  // 10 → 13 (약 1.3배)
+  p.textSize(13);
   p.fill(80, 110, 80);
-  p.text('제작자 : 이현서  이유진  전재민', cx, 219);  // 197 → 219
+  p.text('제작자 : 이현서  이유진  전재민', cx, 226);  // 219 → 226
 
-  // ── 캐릭터 영역: charTopY +20px
+  // ── 캐릭터 영역: charTopY +7px
   const ps    = 17;
   const charW = 8 * ps;
   const charH = 9 * ps;
-  const charTopY = 265;  // 245 → 265 (+20)
+  const charTopY = 272;  // 265 → 272 (+7)
 
   const axMid = 140;
   const bxMid = CANVAS_W - 140;
-
-  // 패널 배경 없음 (제거됨)
 
   _drawPMap(p, _PMAP, axMid - charW / 2, charTopY, ps, '#C62828', '#eeeeee', '#111111', '#ffffff', false);
   _drawPMap(p, _PMAP, bxMid - charW / 2, charTopY, ps, '#1565C0', '#eeeeee', '#111111', '#ffffff', true);
@@ -997,8 +1005,6 @@ function drawLobby(p) {
   const zps  = 15;
   const zW   = 8 * zps;
   const zTopY = charTopY + (charH - 9 * zps) / 2 + 4;
-
-  // 좀비 패널 배경 없음 (제거됨)
 
   _drawPMap(p, _ZMAP, cx - zW / 2, zTopY, zps, '#2E7D32', '#ccffcc', '#1B5E20', '#e8ffe8', false);
 
@@ -1046,8 +1052,8 @@ function drawLobby(p) {
   _drawKey(p, '↓', bxMid - kw/2,         keyTopY+kh+gap, kw, kh, COLOR_B);
   _drawKey(p, '→', bxMid + kw/2 + gap,   keyTopY+kh+gap, kw, kh, COLOR_B);
 
-  // ── 시작 버튼
-  const startBtnY = keyTopY + kh * 2 + gap + 18;
+  // ── 시작 버튼 (+3px 추가)
+  const startBtnY = keyTopY + kh * 2 + gap + 21;  // 18 → 21 (+3)
   const btnW = 360, btnH = 52;
   const btnX = cx - btnW / 2;
   const blink = Math.floor(p.frameCount / 16) % 2 === 0;
@@ -1071,8 +1077,8 @@ function drawLobby(p) {
   p.text('▶  시작하기  (SPACE)', cx, startBtnY + btnH / 2);
   p.textStyle(p.NORMAL);
 
-  // ── 게임 방법 버튼 (+30px 추가 간격)
-  const howtoBtnY = startBtnY + btnH + 42;  // 12 → 42
+  // ── 게임 방법 버튼 (+3px)
+  const howtoBtnY = startBtnY + btnH + 45;  // 42 → 45 (+3)
   const htW = 190, htH = 36;
   const htX = cx - htW / 2;
   const htBlink = Math.floor(p.frameCount / 25) % 2 === 0;
@@ -1088,7 +1094,7 @@ function drawLobby(p) {
   p.text('❓  게임 방법', cx, howtoBtnY + htH / 2);
   p.textStyle(p.NORMAL);
 
-  // ── 계정 영역
+  // ── 계정 영역 (+3px)
   const accountAreaY = howtoBtnY + htH + 14;
   if (currentUserId) {
     p.fill(20, 28, 20, 200);
@@ -1241,26 +1247,35 @@ function drawLobby(p) {
 function _updateDrawBloodDrops(p) {
   p.noStroke();
   for (const d of bloodDrops) {
-    const r1 = 160, g1 = 0, b1 = 0;
-    p.fill(r1, g1, b1, d.alpha);
-    if (d.type === 0) {
-      p.ellipse(d.x, d.y, d.size, d.size);
-    } else if (d.type === 1) {
-      p.push();
-      p.translate(d.x, d.y);
-      p.rotate(d.angle);
-      p.ellipse(0, 0, d.size * 1.6, d.size * 0.7);
-      p.pop();
-    } else {
-      p.ellipse(d.x, d.y, d.size, d.size);
-      p.fill(r1, g1, b1, d.alpha * 0.7);
-      p.ellipse(d.x + d.size * 0.8, d.y - d.size * 0.4, d.size * 0.5, d.size * 0.5);
-      p.ellipse(d.x - d.size * 0.6, d.y + d.size * 0.5, d.size * 0.4, d.size * 0.4);
+    if (!d || !d.drip) continue;
+    const r = 130, g = 0, b = 0;
+    const a = d.alpha;
+
+    // 1. 중심 큰 스플래터 덩어리
+    p.fill(r, g, b, a);
+    p.ellipse(d.x, d.y, d.size, d.size * 0.88);
+
+    // 2. 방향성 드립 (긴 줄기)
+    p.fill(r, g, b, a * 0.85);
+    if (d.drip === 'down') {
+      p.rect(d.x - d.dripW / 2, d.y + d.size * 0.4, d.dripW, d.dripLen, 0, 0, d.dripW, d.dripW);
+      p.ellipse(d.x, d.y + d.size * 0.4 + d.dripLen, d.dripW * 1.4, d.dripW * 1.4);
+    } else if (d.drip === 'up') {
+      p.rect(d.x - d.dripW / 2, d.y - d.size * 0.4 - d.dripLen, d.dripW, d.dripLen, d.dripW, d.dripW, 0, 0);
+      p.ellipse(d.x, d.y - d.size * 0.4 - d.dripLen, d.dripW * 1.4, d.dripW * 1.4);
+    } else if (d.drip === 'right') {
+      p.rect(d.x + d.size * 0.4, d.y - d.dripW / 2, d.dripLen, d.dripW, 0, d.dripW, d.dripW, 0);
+      p.ellipse(d.x + d.size * 0.4 + d.dripLen, d.y, d.dripW * 1.4, d.dripW * 1.4);
+    } else if (d.drip === 'left') {
+      p.rect(d.x - d.size * 0.4 - d.dripLen, d.y - d.dripW / 2, d.dripLen, d.dripW, d.dripW, 0, 0, d.dripW);
+      p.ellipse(d.x - d.size * 0.4 - d.dripLen, d.y, d.dripW * 1.4, d.dripW * 1.4);
     }
-    for (let i = 0; i < d.drips; i++) {
-      const dr = d.dripOffsets[i];
-      p.fill(120, 0, 0, d.alpha * 0.5);
-      p.ellipse(d.x + dr.ox, d.y + dr.oy, dr.size, dr.size * 1.4);
+
+    // 3. 위성 튀김 소방울
+    for (let i = 0; i < d.satellites; i++) {
+      const s = d.satOffsets[i];
+      p.fill(r, g, b, a * 0.7);
+      p.ellipse(d.x + s.ox, d.y + s.oy, s.r, s.r * 0.85);
     }
   }
 }
