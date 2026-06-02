@@ -589,6 +589,9 @@ function _endGame(reason) {
 
 // ── 키보드 입력
 function keyPressed() {
+  // 로비에서 아무 키나 누르면 BGM 시작 (브라우저 정책: 사용자 인터랙션 필요)
+  if (phase === PHASE_LOBBY) _playBGM();
+
   if (phase === PHASE_LOBBY && (lobbySubState === 'login' || lobbySubState === 'register')) {
     if (keyCode === 27) { lobbySubState = 'main'; inputBuffer = ''; inputError = ''; return; }
     if (keyCode === 13) { _submitInput(); return; }
@@ -637,6 +640,8 @@ function _submitInput() {
 
 function mousePressed() {
   const cx = CANVAS_W / 2;
+  // 로비에서 클릭하면 BGM 시작
+  if (phase === PHASE_LOBBY) _playBGM();
 
   if (phase === PHASE_LOBBY && (lobbySubState === 'login' || lobbySubState === 'register')) {
     const pw = 340, ph = 200;
