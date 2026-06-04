@@ -73,20 +73,21 @@ function _applyBoxEffect(box, player, phase, p) {
                     : (player.id === 'A' ? OWNER_A : OWNER_B);
       applyAreaBomb(player.r, player.c, owner);
       player.bombFlash = 20;
-      playSoundPowerup();  // 좋은 아이템 소리
+      _playSFX('item');  // 아이템 효과음
       showNotification(player.id, '💊 약을 먹었다! 보너스 땅이 주어졌다!!', '#43A047');
       break;
     }
     case BOX_TYPE_BLOOD: {
       zombieBloodTimer = ZOMBIE_BLOOD_DURATION;
-      playSoundZombie();  // 좀비 소리
+      _playSFX('item');  // 아이템 효과음
       showNotification(player.id, '🩸 피를 먹었다! 좀비가 빨라진다!!', '#E53935');
       break;
     }
     case BOX_TYPE_ENERGY: {
       player.boostTimer = BOOST_DURATION;
       player.steelTailTimer = STEEL_TAIL_DURATION;
-      playSoundDrink();  // 마시는 소리
+      _playSFX('item');    // 아이템 효과음
+      _playSFX('speedup'); // 속도 업 효과음
       showNotification(player.id, '⚡ 에너지드링크를 마셨다! 강철꼬리가 생겼다!!', '#00E676');
       break;
     }
