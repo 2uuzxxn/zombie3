@@ -339,25 +339,56 @@ function _drawKey(p, label, x, y, w, h, col) {
   p.text(label, x + w / 2, y + h / 2);
 }
 
-// ── 브금 (로비 BGM)
-let bgmAudio = null;
+// ── 사운드 시스템 (멀티트랙 BGM + 효과음)
+const _sfx = {};
+let _currentBGM = null;
+let _currentBGMKey = null;
 
-function _initBGM() {
-  bgmAudio = new Audio('전반_브금.mp3');
-  bgmAudio.loop = true;
-  bgmAudio.volume = 0.55;
+function _initAudio() {
+  // BGM 트랙
+  _sfx.intro    = new Audio('intro_music.mp3');
+  _sfx.first    = new Audio('전반_브금.mp3');
+  _sfx.second   = new Audio('후반_브금.mp3');
+  _sfx.ending   = new Audio('엔딩_브금.mp3');
+  _sfx.intro.loop  = true;
+  _sfx.first.loop  = true;
+  _sfx.second.loop = true;
+  _sfx.ending.loop = true;
+  [_sfx.intro, _sfx.first, _sfx.second, _sfx.ending].forEach(a => a.volume = 0.55);
+
+  // 효과음
+  _sfx.gameover    = new Audio('game_over.mp3');
+  _sfx.item        = new Audio('item.mp3');
+  _sfx.speedup     = new Audio('player_speed_up.mp3');
+  _sfx.transition  = new Audio('transition.mp3');
+  [_sfx.gameover, _sfx.item, _sfx.speedup, _sfx.transition].forEach(a => a.volume = 0.75);
 }
 
-function _playBGM() {
-  if (!bgmAudio) return;
-  if (bgmAudio.paused) bgmAudio.play().catch(() => {});
+function _switchBGM(key) {
+  if (_currentBGMKey === key) return;
+  if (_currentBGM) { _currentBGM.pause(); _currentBGM.currentTime = 0; }
+  _currentBGMKey = key;
+  _currentBGM = _sfx[key] || null;
+  if (_currentBGM) _currentBGM.play().catch(() => {});
 }
 
-function _stopBGM() {
-  if (!bgmAudio) return;
-  bgmAudio.pause();
-  bgmAudio.currentTime = 0;
+function _stopAllBGM() {
+  if (_currentBGM) { _currentBGM.pause(); _currentBGM.currentTime = 0; }
+  _currentBGM = null;
+  _currentBGMKey = null;
 }
+
+function _playSFX(key) {
+  const a = _sfx[key];
+  if (!a) return;
+  a.currentTime = 0;
+  a.play().catch(() => {});
+}
+
+// 하위 호환 래퍼 (lobby BGM)
+function _initBGM() { /* _initAudio()로 대체됨 */ }
+function _playBGM()  { _switchBGM('intro'); }
+function _stopBGM()  { _stopAllBGM(); }
 
 function setup() {
   createCanvas(CANVAS_W, CANVAS_H);
@@ -365,7 +396,7 @@ function setup() {
   textFont('Nunito');
   resetGame();
   _initBloodDrops();
-  _initBGM();
+  _initAudio();
 }
 
 function _initBloodDrops() {
@@ -398,16 +429,20 @@ function resetGame() {
   inputBuffer = '';
   inputError = '';
   ambientTimer = 0;
-  // 로비 돌아오면 BGM 재개
-  if (bgmAudio) { bgmAudio.currentTime = 0; bgmAudio.play().catch(() => {}); }
+  // 로비 돌아오면 인트로 BGM 재개
+  if (_sfx.intro) _switchBGM('intro');
 }
 
 function draw() {
   background(COLOR_EMPTY);
-  if (phase === PHASE_LOBBY) { _playBGM(); drawLobby(this); return; }
+  if (phase === PHASE_LOBBY) { _switchBGM('intro'); drawLobby(this); return; }
 
-  // 게임 시작되면 BGM 정지
-  _stopBGM();
+  // 게임 시작: 협력페이즈 → 전반 브금, 배신페이즈 → 후반 브금
+  if (phase === PHASE_COOP || phase === PHASE_SOLO) {
+    _switchBGM('first');
+  } else if (phase === PHASE_BETRAYAL) {
+    _switchBGM('second');
+  }
 
   if (phase !== PHASE_END) {
     ambientTimer++;
@@ -469,6 +504,10 @@ function _drawFillAnim(p) {
   fillAnimRow += FILL_SPEED;
   if (fillAnimRow >= ROWS) {
     fillAnimRow = ROWS;
+    if (fillAnimActive) {
+      // 채우기 완료 → 엔딩 브금 시작
+      _switchBGM('ending');
+    }
     fillAnimActive = false;
   }
 
@@ -581,7 +620,9 @@ function _endGame(reason) {
   }
 
   fillAnimActive = true;
-  fillAnimRow = 0; 
+  fillAnimRow = 0;
+  _stopAllBGM();
+  _playSFX('gameover');
   pixelFillColor = winner === 'A' ? COLOR_A :
                    winner === 'B' ? COLOR_B :
                    winner === 'draw' ? '#FFD600' : COLOR_ZOMBIE;
@@ -718,7 +759,7 @@ function mousePressed() {
 }
 
 // ── 배신 공지
-function showBetrayalAnnounce(p) { betrayalAnnounceFade = FRAME_RATE * 2; }
+function showBetrayalAnnounce(p) { betrayalAnnounceFade = FRAME_RATE * 2; _playSFX('transition'); }
 function drawBetrayalAnnounce(p) {
   if (betrayalAnnounceFade <= 0) return;
   betrayalAnnounceFade--;
