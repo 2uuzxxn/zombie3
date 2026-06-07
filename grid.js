@@ -57,12 +57,14 @@ function floodFillEnclosed(tailSet, owner, p) {
   const visited = new Set();
   const queue = [];
 
-  // 외곽(경계선)에서 시작하여 꼬리와 자신의 땅을 제외한 영역을 탐색
+  // 외곽(경계선)에서 시작하여 꼬리와 이미 점령된 타일을 제외한 영역을 탐색
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       if (r === 0 || r === ROWS-1 || c === 0 || c === COLS-1) {
         const key = `${r},${c}`;
-        if (!tailSet.has(key) && grid[r][c].owner !== owner && !visited.has(key)) {
+        const o = grid[r][c].owner;
+        // 꼬리 타일이거나 이미 어떤 플레이어/좀비의 땅이면 시작점으로 삼지 않음
+        if (!tailSet.has(key) && (o === OWNER_NONE) && !visited.has(key)) {
           visited.add(key);
           queue.push([r, c]);
         }
@@ -78,20 +80,23 @@ function floodFillEnclosed(tailSet, owner, p) {
       if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
       const key = `${nr},${nc}`;
       if (visited.has(key) || tailSet.has(key)) continue;
-      if (grid[nr][nc].owner === owner) continue;
+      // 어떤 플레이어나 좀비의 땅이면 BFS 통과 불가 (장벽)
+      if (grid[nr][nc].owner !== OWNER_NONE) continue;
       visited.add(key);
       queue.push([nr, nc]);
     }
   }
 
+  // 꼬리를 자기 땅으로
   for (const key of tailSet) {
     const [r, c] = key.split(',').map(Number);
     setOwner(r, c, owner);
   }
+  // BFS가 닿지 못한 빈 타일(OWNER_NONE)만 자기 땅으로 채움
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const key = `${r},${c}`;
-      if (grid[r][c].owner !== owner && !visited.has(key) && !tailSet.has(key)) {
+      if (grid[r][c].owner === OWNER_NONE && !visited.has(key) && !tailSet.has(key)) {
         setOwner(r, c, owner);
       }
     }
