@@ -364,7 +364,8 @@ function _initAudio() {
   _sfx.transition    = new Audio('transition.mp3');
   _sfx.blood         = new Audio('blood.mp3');
   _sfx.energy_drink  = new Audio('energy_drink.mp3');
-  [_sfx.gameover, _sfx.item, _sfx.speedup, _sfx.transition, _sfx.blood, _sfx.energy_drink].forEach(a => { a.volume = 0.75; a.muted = true; });
+  _sfx.button        = new Audio('button.mp3');
+  [_sfx.gameover, _sfx.item, _sfx.speedup, _sfx.transition, _sfx.blood, _sfx.energy_drink, _sfx.button].forEach(a => { a.volume = 0.75; a.muted = true; });
 }
 
 function _setAudioEnabled(enabled) {
@@ -683,13 +684,13 @@ function keyPressed() {
   }
 
   if (phase === PHASE_LOBBY && keyCode === 32 && !showHowto) {
-    playZombieRoar();
+    _playSFX('button');
     phase = PHASE_COOP;
     return;
   }
   if (phase === PHASE_LOBBY && keyCode === 27 && showHowto)  { showHowto = false; return; }
   if (phase === PHASE_END   && keyCode === 32) {
-    playZombieRoar();
+    _playSFX('button');
     resetGame();
     return;
   }
@@ -776,7 +777,7 @@ function mousePressed() {
     const accountAreaY = howtoBtnY + htH + 14;
 
     if (mouseX > cx - 180 && mouseX < cx + 180 && mouseY > startBtnY && mouseY < startBtnY + btnH) {
-      playZombieRoar();
+      _playSFX('button');
       phase = PHASE_COOP; 
       return;
     }
@@ -803,7 +804,7 @@ function mousePressed() {
     const panY = cy + 50, panH = 220;
     const btnY2 = panY + panH - 58;
     if (mouseX > cx - 120 && mouseX < cx + 120 && mouseY > btnY2 && mouseY < btnY2 + 44) {
-      playZombieRoar();
+      _playSFX('button');
       resetGame(); return;
     }
   }
