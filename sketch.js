@@ -1018,7 +1018,7 @@ function drawLobby(p) {
   _updateDrawBloodDrops(p);
 
   p.textAlign(p.CENTER, p.CENTER);
-  p.textFont('Nunito');
+  p.textFont('shlop');
 
   const cx = CANVAS_W / 2;
 
@@ -1027,12 +1027,12 @@ function drawLobby(p) {
   p.textSize(60);
   for (let i = 4; i >= 1; i--) {
     p.fill(34, 200, 60, 18 - i * 3);
-    p.text('좀비 슬라이드 듀오', cx, 119 + i);  // 112 → 119 (+7)
+    p.text('ZOMBIE SLIDE DUO', cx, 119 + i);
   }
   p.fill(10, 40, 12);
-  p.text('좀비 슬라이드 듀오', cx + 2, 121);
+  p.text('ZOMBIE SLIDE DUO', cx + 2, 121);
   p.fill('#55CC60');
-  p.text('좀비 슬라이드 듀오', cx, 119);
+  p.text('ZOMBIE SLIDE DUO', cx, 119);
   p.textStyle(p.NORMAL);
 
   // 부제·크레딧 (+7px)
