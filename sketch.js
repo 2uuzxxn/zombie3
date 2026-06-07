@@ -661,6 +661,8 @@ function _endGame(reason) {
   fillAnimActive = true;
   fillAnimRow = 0;
   _stopAllBGM();
+  // 배신 알림 소리가 재생 중이면 즉시 멈춤
+  if (_sfx.transition) { _sfx.transition.pause(); _sfx.transition.currentTime = 0; }
   _playSFX('gameover');
   pixelFillColor = winner === 'A' ? COLOR_A :
                    winner === 'B' ? COLOR_B :
@@ -929,11 +931,7 @@ function drawResultScreen(p, counts, winner, highScore, isNewHighScore) {
     const wB = Math.max(6, (counts.B / totalTiles) * barW);
     p.fill(COLOR_B); p.rect(barX + barW - wB, statsY + 26, wB, 18, 0, 9, 9, 0);
 
-    p.textStyle(p.BOLD); p.textSize(11); p.noStroke();
-    p.fill(COLOR_A); p.textAlign(p.LEFT, p.CENTER);
-    p.text('A  ' + counts.A + ' 타일', barX + 6, statsY + 9);
-    p.fill(COLOR_B); p.textAlign(p.RIGHT, p.CENTER);
-    p.text(counts.B + ' 타일  B', barX + barW - 6, statsY + 35);
+
 
     p.fill(100); p.textAlign(p.CENTER, p.CENTER); p.textSize(10);
     const zPct = Math.round((counts.Z / totalTiles) * 100);
@@ -1039,7 +1037,7 @@ function drawLobby(p) {
   // 부제·크레딧 (+7px)
   p.textSize(13);
   p.fill(160, 200, 160);
-  p.text('2인 협력  →  배신 영역 점령 게임', cx, 207);  // 200 → 207
+  p.text('한 편이 되어 좀비와 맞서 싸우다 후반부에 서로를 공격하는 2인용 서바이벌 배신 게임', cx, 207);
 
   p.textSize(13);
   p.fill(80, 110, 80);
@@ -1192,7 +1190,7 @@ function drawLobby(p) {
   // ── 게임 방법 팝업
   if (showHowto) {
     p.fill(0, 0, 0, 200); p.noStroke(); p.rect(0, 0, CANVAS_W, CANVAS_H);
-    const pw = 400, ph = 300;
+    const pw = 400, ph = 330;
     const px = cx - pw / 2;
     const py = CANVAS_H / 2 - ph / 2;
 
@@ -1217,29 +1215,27 @@ function drawLobby(p) {
     p.text('✕', px + pw - 22, py + 22);
 
     const lines = [
+      ['🎮', 'PLAYER A: A D W S  /  PLAYER B: ← → ↑ ↓'],
       ['⏱', '협력 30초  →  배신 30초'],
       ['🐾', '꼬리를 뻗다 자기 땅으로 돌아오면 영역 확보'],
-      ['💀', '상대 꼬리를 끊으면 사망'],
+      ['💀', '상대 꼬리를 끊으면 상대 사망'],
       ['🧟', '좀비 꼬리를 밟으면 좀비 사망'],
       ['💊', '약 :  보너스 땅 획득'],
       ['🩸', '피 :  좀비 가속'],
       ['⚡', '에너지드링크 :  속도 2배 + 강철꼬리'],
     ];
-    const emojiX = px + 26;   // 이모티콘 고정 x
-    const textX  = px + 56;   // 텍스트 시작 x (이모티콘과 완전히 분리)
+    const emojiX = px + 26;
+    const textX  = px + 56;
     for (let i = 0; i < lines.length; i++) {
-      const ly = py + 84 + i * 30;  // 기존 64 → 84 (+20px 아래로)
-      if (i === 4) {
+      const ly = py + 72 + i * 28;
+      if (i === 5) {
         p.stroke(40, 70, 40); p.strokeWeight(1);
         p.line(px + 16, ly - 10, px + pw - 16, ly - 10);
-        p.noStroke(); p.fill(60, 100, 60); p.textSize(9); p.textAlign(p.LEFT, p.TOP);
-        p.text('ITEMS', emojiX, ly - 8);
+        p.noStroke();
       }
-      // 이모티콘
       p.noStroke(); p.textSize(15); p.textAlign(p.LEFT, p.CENTER);
       p.fill(255);
       p.text(lines[i][0], emojiX, ly);
-      // 설명 텍스트
       p.fill(160, 200, 160); p.textSize(11);
       p.text(lines[i][1], textX, ly);
     }
