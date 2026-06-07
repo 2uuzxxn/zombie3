@@ -1190,7 +1190,7 @@ function drawLobby(p) {
   // ── 게임 방법 팝업
   if (showHowto) {
     p.fill(0, 0, 0, 200); p.noStroke(); p.rect(0, 0, CANVAS_W, CANVAS_H);
-    const pw = 400, ph = 330;
+    const pw = 400, ph = 350;
     const px = cx - pw / 2;
     const py = CANVAS_H / 2 - ph / 2;
 
@@ -1227,10 +1227,11 @@ function drawLobby(p) {
     const emojiX = px + 26;
     const textX  = px + 56;
     for (let i = 0; i < lines.length; i++) {
-      const ly = py + 72 + i * 28;
+      const extraOffset = i >= 5 ? 14 : 0;  // 구분선 이후 항목들 아래로
+      const ly = py + 72 + i * 28 + extraOffset;
       if (i === 5) {
         p.stroke(40, 70, 40); p.strokeWeight(1);
-        p.line(px + 16, ly - 10, px + pw - 16, ly - 10);
+        p.line(px + 16, ly - 18, px + pw - 16, ly - 18);
         p.noStroke();
       }
       p.noStroke(); p.textSize(15); p.textAlign(p.LEFT, p.CENTER);
