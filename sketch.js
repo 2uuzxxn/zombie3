@@ -343,25 +343,36 @@ function _drawKey(p, label, x, y, w, h, col) {
 const _sfx = {};
 let _currentBGM = null;
 let _currentBGMKey = null;
+let _audioEnabled = false;   // 시작 화면에서 버튼으로 켜기 전까지 음소거
 
 function _initAudio() {
   // BGM 트랙
   _sfx.intro    = new Audio('intro_music.mp3');
-  _sfx.first    = new Audio('전반_브금.mp3');
-  _sfx.second   = new Audio('후반_브금.mp3');
-  _sfx.ending   = new Audio('엔딩_브금.mp3');
+  _sfx.first    = new Audio('firsthalf_bgm.mp3');
+  _sfx.second   = new Audio('secondhalf_bgm.mp3');
+  _sfx.ending   = new Audio('ending_bgm.mp3');
   _sfx.intro.loop  = true;
   _sfx.first.loop  = true;
   _sfx.second.loop = true;
   _sfx.ending.loop = true;
-  [_sfx.intro, _sfx.first, _sfx.second, _sfx.ending].forEach(a => a.volume = 0.55);
+  [_sfx.intro, _sfx.first, _sfx.second, _sfx.ending].forEach(a => { a.volume = 0.55; a.muted = true; });
 
   // 효과음
-  _sfx.gameover    = new Audio('game_over.mp3');
-  _sfx.item        = new Audio('item.mp3');
-  _sfx.speedup     = new Audio('player_speed_up.mp3');
-  _sfx.transition  = new Audio('transition.mp3');
-  [_sfx.gameover, _sfx.item, _sfx.speedup, _sfx.transition].forEach(a => a.volume = 0.75);
+  _sfx.gameover      = new Audio('game_over.mp3');
+  _sfx.item          = new Audio('item.mp3');
+  _sfx.speedup       = new Audio('player_speed_up.mp3');
+  _sfx.transition    = new Audio('transition.mp3');
+  _sfx.blood         = new Audio('blood.mp3');
+  _sfx.energy_drink  = new Audio('energy_drink.mp3');
+  [_sfx.gameover, _sfx.item, _sfx.speedup, _sfx.transition, _sfx.blood, _sfx.energy_drink].forEach(a => { a.volume = 0.75; a.muted = true; });
+}
+
+function _setAudioEnabled(enabled) {
+  _audioEnabled = enabled;
+  const muted = !enabled;
+  for (const key of Object.keys(_sfx)) {
+    _sfx[key].muted = muted;
+  }
 }
 
 function _switchBGM(key) {
@@ -369,7 +380,7 @@ function _switchBGM(key) {
   if (_currentBGM) { _currentBGM.pause(); _currentBGM.currentTime = 0; }
   _currentBGMKey = key;
   _currentBGM = _sfx[key] || null;
-  if (_currentBGM) _currentBGM.play().catch(() => {});
+  if (_currentBGM && _audioEnabled) _currentBGM.play().catch(() => {});
 }
 
 function _stopAllBGM() {
@@ -379,6 +390,7 @@ function _stopAllBGM() {
 }
 
 function _playSFX(key) {
+  if (!_audioEnabled) return;
   const a = _sfx[key];
   if (!a) return;
   a.currentTime = 0;
@@ -389,6 +401,29 @@ function _playSFX(key) {
 function _initBGM() { /* _initAudio()로 대체됨 */ }
 function _playBGM()  { _switchBGM('intro'); }
 function _stopBGM()  { _stopAllBGM(); }
+
+// 소리 토글 버튼 (로비 좌상단)
+function _drawSoundToggle(p) {
+  const bx = 12, by = 12, bw = 70, bh = 28;
+  const on = _audioEnabled;
+  p.noStroke();
+  p.fill(on ? 40 : 30, on ? 60 : 30, on ? 40 : 30, 210);
+  p.rect(bx, by, bw, bh, 8);
+  p.stroke(on ? '#4CAF50' : '#666'); p.strokeWeight(1.5);
+  p.noFill();
+  p.rect(bx, by, bw, bh, 8);
+  p.noStroke();
+  p.fill(on ? '#A5D6A7' : '#888');
+  p.textSize(10); p.textStyle(p.BOLD);
+  p.textAlign(p.CENTER, p.CENTER);
+  p.text(on ? '🔊 ON' : '🔇 OFF', bx + bw/2, by + bh/2);
+  p.textStyle(p.NORMAL);
+}
+
+function _clickedSoundToggle() {
+  const bx = 12, by = 12, bw = 70, bh = 28;
+  return mouseX >= bx && mouseX <= bx + bw && mouseY >= by && mouseY <= by + bh;
+}
 
 function setup() {
   createCanvas(CANVAS_W, CANVAS_H);
@@ -429,13 +464,17 @@ function resetGame() {
   inputBuffer = '';
   inputError = '';
   ambientTimer = 0;
-  // 로비 돌아오면 인트로 BGM 재개
-  if (_sfx.intro) _switchBGM('intro');
+  // 로비 돌아오면 인트로 BGM 재개 (소리가 켜진 경우만)
+  if (_audioEnabled && _sfx.intro) _switchBGM('intro');
 }
 
 function draw() {
   background(COLOR_EMPTY);
-  if (phase === PHASE_LOBBY) { _switchBGM('intro'); drawLobby(this); return; }
+  if (phase === PHASE_LOBBY) {
+    drawLobby(this);
+    _drawSoundToggle(this);
+    return;
+  }
 
   // 게임 시작: 협력페이즈 → 전반 브금, 배신페이즈 → 후반 브금
   if (phase === PHASE_COOP || phase === PHASE_SOLO) {
@@ -631,7 +670,7 @@ function _endGame(reason) {
 // ── 키보드 입력
 function keyPressed() {
   // 로비에서 아무 키나 누르면 BGM 시작 (브라우저 정책: 사용자 인터랙션 필요)
-  if (phase === PHASE_LOBBY) _playBGM();
+  // 소리는 토글 버튼으로만 켜고 끔
 
   if (phase === PHASE_LOBBY && (lobbySubState === 'login' || lobbySubState === 'register')) {
     if (keyCode === 27) { lobbySubState = 'main'; inputBuffer = ''; inputError = ''; return; }
@@ -681,8 +720,18 @@ function _submitInput() {
 
 function mousePressed() {
   const cx = CANVAS_W / 2;
-  // 로비에서 클릭하면 BGM 시작
-  if (phase === PHASE_LOBBY) _playBGM();
+
+  // 소리 토글 버튼 (로비에서만)
+  if (phase === PHASE_LOBBY && _clickedSoundToggle()) {
+    if (!_audioEnabled) {
+      _setAudioEnabled(true);
+      _switchBGM('intro');
+    } else {
+      _setAudioEnabled(false);
+      _stopAllBGM();
+    }
+    return;
+  }
 
   if (phase === PHASE_LOBBY && (lobbySubState === 'login' || lobbySubState === 'register')) {
     const pw = 340, ph = 200;
