@@ -52,7 +52,7 @@ function drawUI(p, phase, timeLeft, counts) {
   p.noStroke(); p.fill(50);
   p.rect(0, hudH, CANVAS_W, 5);
   
-  const barColor = timeFraction > 0.4 ? '#4CAF50' : timeFraction > 0.15 ? '#FF9800' : '#F44336';
+  const barColor = '#F44336';
   p.fill(barColor);
   p.rect(0, hudH, CANVAS_W * timeFraction, 5);
 
