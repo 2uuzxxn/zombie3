@@ -684,12 +684,14 @@ function keyPressed() {
   }
 
   if (phase === PHASE_LOBBY && keyCode === 32 && !showHowto) {
+    if (!_audioEnabled) { _setAudioEnabled(true); }
     _playSFX('button');
     phase = PHASE_COOP;
     return;
   }
   if (phase === PHASE_LOBBY && keyCode === 27 && showHowto)  { showHowto = false; return; }
   if (phase === PHASE_END   && keyCode === 32) {
+    if (!_audioEnabled) { _setAudioEnabled(true); }
     _playSFX('button');
     resetGame();
     return;
@@ -728,6 +730,9 @@ function mousePressed() {
   if (phase === PHASE_LOBBY && _clickedSoundToggle()) {
     if (!_audioEnabled) {
       _setAudioEnabled(true);
+      // _currentBGMKey가 이미 'intro'이면 _switchBGM 내부에서 return되어 play 안됨 → 강제 초기화 후 재생
+      _currentBGMKey = null;
+      _currentBGM = null;
       _switchBGM('intro');
     } else {
       _setAudioEnabled(false);
@@ -778,6 +783,7 @@ function mousePressed() {
     const accountAreaY = howtoBtnY + htH + 14;
 
     if (mouseX > cx - 180 && mouseX < cx + 180 && mouseY > startBtnY && mouseY < startBtnY + btnH) {
+      if (!_audioEnabled) { _setAudioEnabled(true); _switchBGM('intro'); }
       _playSFX('button');
       phase = PHASE_COOP; 
       return;
@@ -805,6 +811,7 @@ function mousePressed() {
     const panY = cy + 50, panH = 220;
     const btnY2 = panY + panH - 58;
     if (mouseX > cx - 120 && mouseX < cx + 120 && mouseY > btnY2 && mouseY < btnY2 + 44) {
+      if (!_audioEnabled) { _setAudioEnabled(true); }
       _playSFX('button');
       resetGame(); return;
     }
@@ -1035,6 +1042,14 @@ function drawLobby(p) {
   p.fill('#55CC60');
   p.text('ZOMBIE SLIDE DUO', cx, 119);
   p.textStyle(p.NORMAL);
+
+  // 스피커 버튼 안내 문구
+  p.textFont('Nunito');
+  const speakerBlink = Math.floor(p.frameCount / 20) % 2 === 0;
+  p.textSize(11);
+  p.fill(speakerBlink ? p.color(255, 220, 80, 230) : p.color(200, 170, 50, 180));
+  p.text('[화면 왼쪽 위] 📢 스피커 버튼을 눌러 소리를 켜주세요!', cx, 160);
+  p.textFont('shlop');
 
   // [수정사항] '한 편이 되어...' 문구 위치 +38px(약 1cm) 다운 및 글씨 색상 변경 (기존 #806e50 색상 계열로 교체)
   p.textSize(13);
