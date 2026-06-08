@@ -1048,7 +1048,7 @@ function drawLobby(p) {
   const speakerBlink = Math.floor(p.frameCount / 20) % 2 === 0;
   p.textSize(11);
   p.fill(speakerBlink ? p.color(255, 220, 80, 230) : p.color(200, 170, 50, 180));
-  p.text('[화면 왼쪽 위] 📢 스피커 버튼을 눌러 소리를 켜주세요!', cx, 160);
+  p.text('[화면 왼쪽 위] 📢 스피커 버튼을 눌러 소리를 켜주세요!', cx, 182);
   p.textFont('shlop');
 
   // [수정사항] '한 편이 되어...' 문구 위치 +38px(약 1cm) 다운 및 글씨 색상 변경 (기존 #806e50 색상 계열로 교체)
