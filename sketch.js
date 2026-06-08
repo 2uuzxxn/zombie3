@@ -450,7 +450,7 @@ function resetGame() {
   initPlayers();
   initTiles(this);
   gameTimer = GAME_TOTAL_TIME * FRAME_RATE;
-  betrayalTriggered = false;
+  betrayerTriggered = false;
   winner = null;
   betrayalAnnounceFade = 0;
   soloTimer = 0;
@@ -767,7 +767,8 @@ function mousePressed() {
   }
 
   if (phase === PHASE_LOBBY) {
-    const ps = 17, charH = 9 * ps, charTopY = 272;
+    // 기존 위치값에 y축 전체 피드백 오프셋(+38px, 약 1cm 수치 보정) 적용
+    const ps = 17, charH = 9 * ps, charTopY = 310; // 272 + 38 = 310
     const kh = 22, gap = 3;
     const keyTopY = charTopY + charH + 10;
     const startBtnY = keyTopY + kh * 2 + gap + 21;
@@ -1035,20 +1036,21 @@ function drawLobby(p) {
   p.text('ZOMBIE SLIDE DUO', cx, 119);
   p.textStyle(p.NORMAL);
 
-  // 부제·크레딧 (+7px)
-  p.textSize(13);
-  p.fill(160, 200, 160);
-  p.text('한 편이 되어 좀비와 맞서 싸우다 후반부에 서로를 공격하는 2인용 서바이벌 배신 게임', cx, 207);
-
+  // [수정사항] '한 편이 되어...' 문구 위치 +38px(약 1cm) 다운 및 글씨 색상 변경 (기존 #806e50 색상 계열로 교체)
   p.textSize(13);
   p.fill(80, 110, 80);
-  p.text('제작자 : 이현서  이유진  전재민', cx, 226);  // 219 → 226
+  p.text('한 편이 되어 좀비와 맞서 싸우다 후반부에 서로를 공격하는 2인용 서바이벌 배신 게임', cx, 245); // 207 + 38 = 245
 
-  // ── 캐릭터 영역: charTopY +7px
+  // [수정사항] '제작자 :' 문구 위치 +38px(약 1cm) 다운 및 글씨 색상 변경 (기존 #a0cda0 색상 계열로 교체)
+  p.textSize(13);
+  p.fill(160, 200, 160);
+  p.text('제작자 : 이현서  이유진  전재민', cx, 264);  // 226 + 38 = 264
+
+  // ── 캐릭터 영역: 전체 요소를 38px(약 1cm) 아래로 이동
   const ps    = 17;
   const charW = 8 * ps;
   const charH = 9 * ps;
-  const charTopY = 272;  // 265 → 272 (+7)
+  const charTopY = 310;  // 272 + 38 = 310
 
   const axMid = 140;
   const bxMid = CANVAS_W - 140;
@@ -1062,7 +1064,7 @@ function drawLobby(p) {
 
   _drawPMap(p, _ZMAP, cx - zW / 2, zTopY, zps, '#2E7D32', '#ccffcc', '#1B5E20', '#e8ffe8', false);
 
-  // 라벨 배지
+  // 라벨 배지 (y축 보정에 맞춰 연동)
   const labelY = charTopY - 14;
   p.textStyle(p.BOLD);
   p.textSize(11); p.noStroke();
@@ -1080,7 +1082,7 @@ function drawLobby(p) {
   p.fill('#ccffcc'); p.text('Z O M B I E', cx, labelY);
   p.textStyle(p.NORMAL);
 
-  // VS 텍스트
+  // VS 텍스트 (y축 보정에 맞춰 연동)
   const vsY = charTopY + charH / 2;
   p.textStyle(p.BOLD);
   p.textSize(16);
@@ -1092,7 +1094,7 @@ function drawLobby(p) {
   p.fill(80, 80, 80); p.text('VS', (bxMid + cx) / 2, vsY);
   p.textStyle(p.NORMAL);
 
-  // ── 키 안내
+  // ── 키 안내 (y축 보정에 맞춰 연동)
   const kw = 26, kh = 22, gap = 3;
   const keyTopY = charTopY + charH + 10;
 
@@ -1106,8 +1108,8 @@ function drawLobby(p) {
   _drawKey(p, '↓', bxMid - kw/2,         keyTopY+kh+gap, kw, kh, COLOR_B);
   _drawKey(p, '→', bxMid + kw/2 + gap,   keyTopY+kh+gap, kw, kh, COLOR_B);
 
-  // ── 시작 버튼 (+3px 추가)
-  const startBtnY = keyTopY + kh * 2 + gap + 21;  // 18 → 21 (+3)
+  // ── 시작 버튼 (y축 보정에 맞춰 연동)
+  const startBtnY = keyTopY + kh * 2 + gap + 21;
   const btnW = 360, btnH = 52;
   const btnX = cx - btnW / 2;
   const blink = Math.floor(p.frameCount / 16) % 2 === 0;
@@ -1131,8 +1133,8 @@ function drawLobby(p) {
   p.text('▶  시작하기  (SPACE)', cx, startBtnY + btnH / 2);
   p.textStyle(p.NORMAL);
 
-  // ── 게임 방법 버튼 (+3px)
-  const howtoBtnY = startBtnY + btnH + 45;  // 42 → 45 (+3)
+  // ── 게임 방법 버튼 (y축 보정에 맞춰 연동)
+  const howtoBtnY = startBtnY + btnH + 45;
   const htW = 190, htH = 36;
   const htX = cx - htW / 2;
   const htBlink = Math.floor(p.frameCount / 25) % 2 === 0;
@@ -1148,7 +1150,7 @@ function drawLobby(p) {
   p.text('❓  게임 방법', cx, howtoBtnY + htH / 2);
   p.textStyle(p.NORMAL);
 
-  // ── 계정 영역 (+3px)
+  // ── 계정 영역 (y축 보정에 맞춰 연동)
   const accountAreaY = howtoBtnY + htH + 14;
   if (currentUserId) {
     p.fill(20, 28, 20, 200);
