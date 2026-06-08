@@ -1024,7 +1024,7 @@ function drawLobby(p) {
 
   // ── 제목 영역
   p.textStyle(p.BOLD);
-  p.textSize(60);
+  p.textSize(90);
   for (let i = 4; i >= 1; i--) {
     p.fill(34, 200, 60, 18 - i * 3);
     p.text('ZOMBIE SLIDE DUO', cx, 119 + i);
